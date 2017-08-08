@@ -59,7 +59,7 @@
                 class="end-space"
                 :tabindex="lineIndex"
                 :id="lineIndex+'-'+index+'-'+(word.length)"
-                :class="{'selected-letter': inRange(lineIndex, index, word.length), 'empty-paragraph': word[0] == '\n'}"
+                :class="{'selected-letter': inRange(lineIndex, index, word.length) && singleSelection, 'empty-paragraph': word[0] == '\n'}"
                 @keypress.prevent.stop="logKeyboard"
                 @keydown.delete.prevent.stop="deletePrev"
                 @keydown.enter.prevent.stop="newLine"
@@ -558,12 +558,10 @@ export default {
       } else {
         // this is for all 'normal' keys that display letters and symbols
         // debugger;
-        console.log(ev);
         let newWord = first + ev.key + second;
         this.editorArray[line].splice(word, 1, newWord);
         letter++;
         const theId = String(line + "-" + word + "-" + letter);
-        console.log(line, word, letter, document.getElementById(theId));
         process.nextTick(() => {
           document.getElementById(theId).focus();
         });
