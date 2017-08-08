@@ -7,7 +7,7 @@
           <div
             class="display-line"
             v-for="(line, lineIndex) in editorArray"
-            @click="logMouse(line,lineIndex)"
+            @click="logMouse($event,line,lineIndex)"
             :class="{'focused-line': isLineFocused(lineIndex)}"
           >
           <div
@@ -25,14 +25,14 @@
             <div
               v-for="(word, index) in line"
               class="display-word"
-              @click="selectLine"
+              @click="selectLine($event, lineIndex)"
               v-on:dblclick="selectWord"
               >
               <!-- loop through letters -->
               <div
                 v-for="(letter, key) in word"
                 class="display-letter"
-                :class="{'first-word-of-line': index == 0 && key == 0, 'selected-letter': inRange(lineIndex, index, key) && singleSelection}"
+                :class="{'first-word-of-line': index == 0 && key == 0, 'selected-letter': inRange(lineIndex, index, key) && singleSelection, 'empty-paragraph': letter == '\n'}"
                 :tabindex="lineIndex"
                 :id="lineIndex+'-'+index+'-'+key"
                 @keypress.prevent.stop="logKeyboard"
@@ -40,12 +40,14 @@
                 @keydown.enter.prevent.stop="newLine"
                 @keydown.down="arrowVertical('down')"
                 @keydown.up="arrowVertical('up')"
-                @keydown.left.meta.stop.prevent="arrowHorizontal('start')"
-                @keydown.right.meta.stop.prevent="arrowHorizontal('end')"
-                @keydown.left.alt.stop.prevent="arrowHorizontal('prev')"
-                @keydown.right.alt.stop.prevent="arrowHorizontal('next')"
-                @keydown.left="arrowHorizontal('left')"
-                @keydown.right="arrowHorizontal('right')"
+                @keydown.left.meta.stop.prevent="arrowHorizontal('start', $event)"
+                @keydown.right.meta.stop.prevent="arrowHorizontal('end', $event)"
+                @keydown.left.alt.stop.prevent="arrowHorizontal('prev', $event)"
+                @keydown.right.alt.stop.prevent="arrowHorizontal('next', $event)"
+                @keydown.left.stop.prevent="arrowHorizontal('left', $event)"
+                @keydown.right.stop.prevent="arrowHorizontal('right', $event)"
+                @keydown.left.shift.stop.prevent="arrowHorizontal('overL', $event)"
+                @keydown.right.shift.stop.prevent="arrowHorizontal('overR', $event)"
                 @mousedown.prevent="mouseDown"
                 @mouseup.prevent="mouseUp"
                 @mouseover="mouseOver"
@@ -57,18 +59,20 @@
                 class="end-space"
                 :tabindex="lineIndex"
                 :id="lineIndex+'-'+index+'-'+(word.length)"
-                :class="{'selected-letter': inRange(lineIndex, index, word.length)}"
+                :class="{'selected-letter': inRange(lineIndex, index, word.length), 'empty-paragraph': word[0] == '\n'}"
                 @keypress.prevent.stop="logKeyboard"
                 @keydown.delete.prevent.stop="deletePrev"
                 @keydown.enter.prevent.stop="newLine"
                 @keydown.down="arrowVertical('down')"
                 @keydown.up="arrowVertical('up')"
-                @keydown.left.meta.stop.prevent="arrowHorizontal('start')"
-                @keydown.right.meta.stop.prevent="arrowHorizontal('end')"
-                @keydown.left.alt.stop.prevent="arrowHorizontal('prev')"
-                @keydown.right.alt.stop.prevent="arrowHorizontal('next')"
-                @keydown.left="arrowHorizontal('left')"
-                @keydown.right="arrowHorizontal('right')"
+                @keydown.left.shift.stop.prevent="arrowHorizontal('overL', $event)"
+                @keydown.right.shift.stop.prevent="arrowHorizontal('overR', $event)"
+                @keydown.left.meta.stop.prevent="arrowHorizontal('start', $event)"
+                @keydown.right.meta.stop.prevent="arrowHorizontal('end', $event)"
+                @keydown.left.alt.stop.prevent="arrowHorizontal('prev', $event)"
+                @keydown.right.alt.stop.prevent="arrowHorizontal('next', $event)"
+                @keydown.left="arrowHorizontal('left', $event)"
+                @keydown.right="arrowHorizontal('right', $event)"
                 @mousedown.prevent="mouseDown"
                 @mouseup.prevent="mouseUp"
                 @mouseover="mouseOver"
@@ -80,8 +84,6 @@
               class="display-letter spacer"
               :id="'END-'+lineIndex"
               @click.stop.prevent="selectEnd"
-              @mousedown.prevent="mouseDown(ev = {target:{id: lastIndex(lineIndex)}})"
-              @mouseup.prevent="mouseUp(ev = {target:{id: lastIndex(lineIndex)}})"
             >
               {{ ' ' }}
             </div>
@@ -109,6 +111,7 @@ export default {
         start: { line: 0, word: 0, letter: 0 },
         end: { line: 0, word: 0, letter: 0 },
       },
+      letterStartSelectBk: Number(),
     };
   },
   computed: {
@@ -143,7 +146,10 @@ export default {
     isLineFocused(index) {
       return index == this.editLocation.line;
     },
-    logMouse(line, index) {
+    logMouse(event, line, index) {
+      if (event.detail === 3) {
+        this.selectLine(event, index);
+      }
       this.target = index;
 
       let focus = document.activeElement.id;
@@ -178,12 +184,11 @@ export default {
         this.editLocation.word = Number(word);
         this.editLocation.letter = Number(letter);
         const theId = String(line + "-" + word + "-" + letter);
-        process.nextTick(() => {
-          document.getElementById(theId).focus();
-        });
+        document.getElementById(theId).focus();
       } catch (e) {
         console.log("does this letter exist?", letter);
       }
+      this.letterStartSelectBk = Number(letter);
       this.selecting = true;
     },
     mouseUp(ev) {
@@ -194,19 +199,37 @@ export default {
       split = divId.indexOf("-");
       let word = divId.slice(0, split);
       let letter = divId.slice(split + 1);
-
-      this.selectionLocation.end = { line: line, word: word, letter: letter };
       try {
-        if (this.compareLoc(this.selectionLocation.start, this.selectionLocation.end) == "less") {
+        if (
+          this.compareLoc(this.selectionLocation.start, {
+            line: line,
+            word: word,
+            letter: letter,
+          }) == "greater"
+        ) {
+          // this.selectionLocation.start.letter--;
+          this.selectionLocation.end = { line: line, word: word, letter: letter };
+          // letter--;
+        } else if (
+          this.compareLoc(this.selectionLocation.start, {
+            line: line,
+            word: word,
+            letter: letter,
+          }) == "equal"
+        ) {
+          throw "Ignore me";
+        } else {
+          letter--;
+          this.selectionLocation.end = { line: line, word: word, letter: letter };
           letter++;
         }
+
         this.editLocation.line = Number(line);
         this.editLocation.word = Number(word);
         this.editLocation.letter = Number(letter);
         const theId = String(line + "-" + word + "-" + letter);
-        process.nextTick(() => {
-          document.getElementById(theId).focus();
-        });
+
+        document.getElementById(theId).focus();
       } catch (e) {
         console.log("does this letter exist?", letter);
       }
@@ -222,7 +245,27 @@ export default {
         let word = divId.slice(0, split);
         let letter = divId.slice(split + 1);
 
-        this.selectionLocation.end = { line: line, word: word, letter: letter };
+        if (
+          this.compareLoc(this.selectionLocation.start, {
+            line: line,
+            word: word,
+            letter: letter,
+          }) == "greater"
+        ) {
+          this.selectionLocation.start.letter = this.letterStartSelectBk - 1;
+          this.selectionLocation.end = { line: line, word: word, letter: letter };
+          // letter--;
+        } else {
+          letter--;
+          this.selectionLocation.end = { line: line, word: word, letter: letter };
+          letter++;
+        }
+        this.editLocation.line = Number(line);
+        this.editLocation.word = Number(word);
+        this.editLocation.letter = Number(letter);
+        const theId = String(line + "-" + word + "-" + letter);
+
+        document.getElementById(theId).focus();
       }
     },
     selectWord(ev) {
@@ -242,18 +285,14 @@ export default {
         this.editLocation.word = Number(word);
         this.editLocation.letter = Number(letter);
         const theId = String(line + "-" + word + "-" + letter);
-        process.nextTick(() => {
-          document.getElementById(theId).focus();
-        });
+
+        document.getElementById(theId).focus();
       } catch (e) {
         console.log("does this letter exist?", letter);
       }
     },
-    selectLine(ev) {
+    selectLine(ev, line) {
       if (ev.detail === 3) {
-        let divId = ev.target.id;
-        let split = divId.indexOf("-");
-        let line = divId.slice(0, split);
         let word = this.editorArray[line].length - 1;
         let letter = this.editorArray[line][word].length - 1;
 
@@ -265,9 +304,8 @@ export default {
           this.editLocation.word = Number(word);
           this.editLocation.letter = Number(letter);
           const theId = String(line + "-" + word + "-" + letter);
-          process.nextTick(() => {
-            document.getElementById(theId).focus();
-          });
+
+          document.getElementById(theId).focus();
         } catch (e) {
           console.log("does this letter exist?", letter);
         }
@@ -311,12 +349,17 @@ export default {
       const divId = ev.target.id;
       if (divId.indexOf("START") > -1) {
         const line = divId.slice(divId.indexOf("-") + 1);
+        if (event.detail === 3) {
+          this.selectLine(ev, line);
+        }
         const word = 0;
         const letter = 0;
 
         const activeLineEnd = String(line + "-" + word + "-" + letter);
 
-        document.getElementById(activeLineEnd).focus();
+        process.nextTick(() => {
+          document.getElementById(activeLineEnd).focus();
+        });
 
         this.editLocation.line = Number(line);
         this.editLocation.word = Number(word);
@@ -332,12 +375,17 @@ export default {
       const divId = ev.target.id;
       if (divId.indexOf("END") > -1) {
         const line = divId.slice(divId.indexOf("-") + 1);
+        if (event.detail === 3) {
+          this.selectLine(ev, line);
+        }
         const word = this.editorArray[line].length - 1;
-        const letter = this.editorArray[line][word].length;
+        let letter = this.editorArray[line][word].length;
 
         const activeLineEnd = String(line + "-" + word + "-" + letter);
 
-        document.getElementById(activeLineEnd).focus();
+        process.nextTick(() => {
+          document.getElementById(activeLineEnd).focus();
+        });
 
         this.editLocation.line = Number(line);
         this.editLocation.word = Number(word);
@@ -348,6 +396,55 @@ export default {
           this.editorArray.push(line);
         });
       }
+    },
+    selectHorizontal(dir) {
+      let line = parseInt(this.editLocation.line);
+      let word = parseInt(this.editLocation.word);
+      let letter = parseInt(this.editLocation.letter);
+
+      if (dir == "left") {
+        if (_.isEqual(this.selectionLocation.start, this.selectionLocation.end)) {
+          this.selectionLocation.start = { line: line, word: word, letter: letter };
+          let tempStr = letter.toString();
+          this.selectionLocation.end = { line: line, word: word, letter: tempStr };
+        } else if (
+          this.selectionLocation.start.letter != letter ||
+          this.selectionLocation.start.word != word ||
+          this.selectionLocation.start.line != line
+        ) {
+          this.selectionLocation.start = { line: line, word: word, letter: letter };
+        } else {
+          console.log("So this is entirely unhandled");
+        }
+      } else if (dir == "right") {
+        if (_.isEqual(this.selectionLocation.start, this.selectionLocation.end)) {
+          letter--;
+          let tempStr = letter.toString();
+          this.selectionLocation.start = { line: line, word: word, letter: tempStr };
+          this.selectionLocation.end = { line: line, word: word, letter: letter };
+          // letter++;
+        } else if (
+          this.selectionLocation.start.letter != letter ||
+          this.selectionLocation.start.word != word ||
+          this.selectionLocation.start.line != line
+        ) {
+          letter--;
+          this.selectionLocation.end = { line: line, word: word, letter: letter };
+        } else {
+          console.log("So this is entirely unhandled");
+        }
+        letter++;
+      }
+      this.editLocation.line = Number(line);
+      this.editLocation.word = Number(word);
+      this.editLocation.letter = Number(letter);
+      this.displayArray = this.editorArray;
+      this.editorArray = [];
+      this.displayArray.forEach(line => {
+        this.editorArray.push(line);
+      });
+      const theId = String(line + "-" + word + "-" + letter);
+      document.getElementById(theId).focus();
     },
     clearSelection() {
       try {
@@ -431,6 +528,7 @@ export default {
       } else if (this.editorArray[line][word].includes(" ")) {
         this.editorArray[line][word] = "";
         letter = parseInt(letter);
+        letter--;
       }
       let first = this.editorArray[line][word].slice(0, letter);
       const second = this.editorArray[line][word].slice(letter);
@@ -459,10 +557,13 @@ export default {
         }
       } else {
         // this is for all 'normal' keys that display letters and symbols
+        // debugger;
+        console.log(ev);
         let newWord = first + ev.key + second;
         this.editorArray[line].splice(word, 1, newWord);
         letter++;
         const theId = String(line + "-" + word + "-" + letter);
+        console.log(line, word, letter, document.getElementById(theId));
         process.nextTick(() => {
           document.getElementById(theId).focus();
         });
@@ -568,10 +669,8 @@ export default {
         this.editorArray.push(line);
       });
     },
-    deletePrev() {
+    deletePrev(ev) {
       // handle the backspace key
-
-      this.clearSelection();
 
       let focus = document.activeElement.id;
       let split = focus.indexOf("-");
@@ -584,7 +683,33 @@ export default {
       let word = focus.slice(0, split);
       let letter = focus.slice(split + 1);
       let theId = String(line + "-" + word + "-" + letter);
-      if (line == 0 && word == 0 && letter == 0) {
+      if (!_.isMatch(this.selectionLocation.start, this.selectionLocation.end)) {
+        this.clearSelection();
+        this.selectionLocation.start = { line: line, word: word, letter: letter };
+        this.selectionLocation.end = { line: line, word: word, letter: letter };
+      } else if (ev.altKey) {
+        if (word != 0) {
+          this.editorArray[line].splice(word, 1);
+          word--;
+          letter = this.editorArray[line][word].length;
+        } else {
+          this.editorArray[line].splice(word, 1, " ");
+          letter = 0;
+        }
+        theId = String(line + "-" + word + "-" + letter);
+        process.nextTick(() => {
+          document.getElementById(theId).focus();
+        });
+      } else if (ev.metaKey) {
+        this.editorArray.splice(line, 1, [" "]);
+        line;
+        word = 0;
+        letter = 0;
+        theId = String(line + "-" + word + "-" + letter);
+        process.nextTick(() => {
+          document.getElementById(theId).focus();
+        });
+      } else if (line == 0 && word == 0 && letter == 0) {
         console.log("Already at the begining!!");
         return;
       } else if (word == 0 && letter == 0) {
@@ -610,6 +735,18 @@ export default {
         process.nextTick(() => {
           document.getElementById(theId).focus();
         });
+      } else if (this.editorArray[line][word][0] == "\n") {
+        const prevLine = line - 1;
+        let wordsInLine = this.editorArray[prevLine].length - 1;
+        let lettersInWord = this.editorArray[prevLine][wordsInLine].length;
+        // wordsInLine++;
+        theId = String(prevLine + "-" + wordsInLine + "-" + lettersInWord);
+        this.editorArray.splice(line, 1);
+        process.nextTick(() => {
+          document.getElementById(theId).focus();
+        });
+        // this.removeDisplayArray(this.target);
+        this.target = prevLine;
       } else {
         const second = this.editorArray[line][word].slice(letter);
         letter--;
@@ -629,6 +766,8 @@ export default {
       this.editorArray = [];
       this.displayArray.forEach(line => {
         this.editorArray.push(line);
+        this.selectionLocation.start = { line: line, word: word, letter: letter };
+        this.selectionLocation.end = { line: line, word: word, letter: letter };
       });
     },
     arrowVertical(dir) {
@@ -691,106 +830,127 @@ export default {
         console.log("CANT");
       }
     },
-    arrowHorizontal(dir) {
-      try {
-        // TODO: workout end of line issues
-        // look at making arrow keys wrap lines
-        const line = parseInt(this.editLocation.line);
-        let word = parseInt(this.editLocation.word);
-        let letter = parseInt(this.editLocation.letter);
+    arrowHorizontal(dir, ev) {
+      // try {
+      // TODO: workout end of line issues
+      // look at making arrow keys wrap lines
+      const line = parseInt(this.editLocation.line);
+      let word = parseInt(this.editLocation.word);
+      let letter = parseInt(this.editLocation.letter);
 
-        let newWord = 0;
-        let newLetter = 0;
-        if (dir == "left") newWord = word - 1;
-        else if (dir == "right") newWord = word + 1;
-        if (dir == "left") newLetter = letter - 1;
-        else if (dir == "right") newLetter = letter + 1;
+      let newWord = 0;
+      let newLetter = 0;
+      if (dir == "left" || dir == "overL") newWord = word - 1;
+      else if (dir == "right" || dir == "overR") newWord = word + 1;
+      if (dir == "left" || dir == "overL") newLetter = letter - 1;
+      else if (dir == "right" || dir == "overR") newLetter = letter + 1;
 
-        if (dir == "start") {
-          let theId = String(line + "-0-0");
-          document.getElementById(theId).focus();
-          this.editLocation.line = Number(line);
-          this.editLocation.word = Number(0);
-          this.editLocation.letter = Number(0);
-          this.displayArray = this.editorArray;
-          this.editorArray = [];
-          this.displayArray.forEach(line => {
-            this.editorArray.push(line);
-          });
-        } else if (dir == "end") {
-          word = this.editorArray[line].length - 1;
-          letter = this.editorArray[line][word].length;
+      if (dir == "start") {
+        let theId = String(line + "-0-0");
+        document.getElementById(theId).focus();
+        if (!ev.shiftKey) {
+          this.selectionLocation.start = { line: line, word: 0, letter: 0 };
+          this.selectionLocation.end = { line: line, word: 0, letter: 0 };
+        } else {
+          this.selectionLocation.start = { line: line, word: 0, letter: 0 };
+        }
 
-          const activeLineEnd = String(line + "-" + word + "-" + letter);
+        this.editLocation.line = Number(line);
+        this.editLocation.word = Number(0);
+        this.editLocation.letter = Number(0);
+        this.displayArray = this.editorArray;
+        this.editorArray = [];
+        this.displayArray.forEach(line => {
+          this.editorArray.push(line);
+        });
+      } else if (dir == "end") {
+        word = this.editorArray[line].length - 1;
+        letter = this.editorArray[line][word].length;
 
-          document.getElementById(activeLineEnd).focus();
+        const activeLineEnd = String(line + "-" + word + "-" + letter);
+        if (!ev.shiftKey) {
+          this.selectionLocation.start = { line: line, word: word, letter: letter };
+          this.selectionLocation.end = { line: line, word: word, letter: letter };
+        } else {
+          this.selectionLocation.end = { line: line, word: word, letter: letter };
+        }
 
-          this.editLocation.line = Number(line);
-          this.editLocation.word = Number(word);
-          this.editLocation.letter = Number(letter);
-          this.displayArray = this.editorArray;
-          this.editorArray = [];
-          this.displayArray.forEach(line => {
-            this.editorArray.push(line);
-          });
-        } else if (dir == "prev") {
-          let theId = String(line + "-" + word + "-0");
-          document.getElementById(theId).focus();
-          this.editLocation.line = Number(line);
-          this.editLocation.word = Number(word);
-          this.editLocation.letter = Number(0);
-          this.displayArray = this.editorArray;
-          this.editorArray = [];
-          this.displayArray.forEach(line => {
-            this.editorArray.push(line);
-          });
-        } else if (dir == "next") {
-          letter = this.editorArray[line][word].length;
+        document.getElementById(activeLineEnd).focus();
 
-          const activeLineEnd = String(line + "-" + word + "-" + letter);
+        this.editLocation.line = Number(line);
+        this.editLocation.word = Number(word);
+        this.editLocation.letter = Number(letter);
+        this.displayArray = this.editorArray;
+        this.editorArray = [];
+        this.displayArray.forEach(line => {
+          this.editorArray.push(line);
+        });
+      } else if (dir == "prev") {
+        let theId = String(line + "-" + word + "-0");
+        if (!ev.shiftKey) {
+          this.selectionLocation.start = { line: line, word: word, letter: 0 };
+          this.selectionLocation.end = { line: line, word: word, letter: 0 };
+        } else {
+          this.selectionLocation.start = { line: line, word: word, letter: 0 };
+        }
+        document.getElementById(theId).focus();
+        this.editLocation.line = Number(line);
+        this.editLocation.word = Number(word);
+        this.editLocation.letter = Number(0);
+        this.displayArray = this.editorArray;
+        this.editorArray = [];
+        this.displayArray.forEach(line => {
+          this.editorArray.push(line);
+        });
+      } else if (dir == "next") {
+        letter = this.editorArray[line][word].length;
 
-          document.getElementById(activeLineEnd).focus();
+        const activeLineEnd = String(line + "-" + word + "-" + letter);
+        if (!ev.shiftKey) {
+          this.selectionLocation.start = { line: line, word: word, letter: letter };
+          this.selectionLocation.end = { line: line, word: word, letter: letter };
+        } else {
+          this.selectionLocation.end = { line: line, word: word, letter: letter };
+        }
 
-          this.editLocation.line = Number(line);
-          this.editLocation.word = Number(word);
-          this.editLocation.letter = Number(letter);
-          this.displayArray = this.editorArray;
-          this.editorArray = [];
-          this.displayArray.forEach(line => {
-            this.editorArray.push(line);
-          });
-        } else if (this.editorArray[line][word][newLetter] != undefined) {
-          let theId = String(line + "-" + word + "-" + newLetter);
-          document.getElementById(theId).focus();
-          this.editLocation.line = Number(line);
-          this.editLocation.word = Number(word);
-          this.editLocation.letter = Number(newLetter);
-          this.displayArray = this.editorArray;
-          this.editorArray = [];
-          this.displayArray.forEach(line => {
-            this.editorArray.push(line);
-          });
-        } else if (this.editorArray[line][newWord] != undefined) {
-          if (dir == "left") {
+        document.getElementById(activeLineEnd).focus();
+
+        this.editLocation.line = Number(line);
+        this.editLocation.word = Number(word);
+        this.editLocation.letter = Number(letter);
+        this.displayArray = this.editorArray;
+        this.editorArray = [];
+        this.displayArray.forEach(line => {
+          this.editorArray.push(line);
+        });
+      } else if (ev.shiftKey) {
+        if (dir == "overL") {
+          if (this.editorArray[line][word][newLetter] != undefined) {
+            let theId = String(line + "-" + word + "-" + newLetter);
+            document.getElementById(theId).focus();
+            this.editLocation.line = Number(line);
+            this.editLocation.word = Number(word);
+            this.editLocation.letter = Number(newLetter);
+            this.displayArray = this.editorArray;
+            this.editorArray = [];
+            this.displayArray.forEach(line => {
+              this.editorArray.push(line);
+            });
+          } else if (this.editorArray[line][newWord] != undefined) {
             letter = this.editorArray[line][newWord].length;
-          } else if (dir == "right") {
-            letter = 0;
-          }
-          let theId = String(line + "-" + newWord + "-" + letter);
-          document.getElementById(theId).focus();
-          this.editLocation.line = Number(line);
-          this.editLocation.word = Number(newWord);
-          this.editLocation.letter = Number(letter);
-          this.displayArray = this.editorArray;
-          this.editorArray = [];
-          this.displayArray.forEach(line => {
-            this.editorArray.push(line);
-          });
-        } else if (dir == "left") {
-          try {
+            let theId = String(line + "-" + newWord + "-" + letter);
+            document.getElementById(theId).focus();
+            this.editLocation.line = Number(line);
+            this.editLocation.word = Number(newWord);
+            this.editLocation.letter = Number(letter);
+            this.displayArray = this.editorArray;
+            this.editorArray = [];
+            this.displayArray.forEach(line => {
+              this.editorArray.push(line);
+            });
+          } else {
             word = 0;
             letter = 0;
-
             const activeLineEnd = String(line + "-" + word + "-" + letter);
 
             document.getElementById(activeLineEnd).focus();
@@ -803,14 +963,37 @@ export default {
             this.displayArray.forEach(line => {
               this.editorArray.push(line);
             });
-          } catch (e) {
-            throw e;
           }
-        } else if (dir == "right") {
-          try {
+
+          this.selectHorizontal("left");
+        } else if (dir == "overR") {
+          // try {
+          if (this.editorArray[line][word][newLetter] != undefined) {
+            let theId = String(line + "-" + word + "-" + newLetter);
+            document.getElementById(theId).focus();
+            this.editLocation.line = Number(line);
+            this.editLocation.word = Number(word);
+            this.editLocation.letter = Number(newLetter);
+            this.displayArray = this.editorArray;
+            this.editorArray = [];
+            this.displayArray.forEach(line => {
+              this.editorArray.push(line);
+            });
+          } else if (this.editorArray[line][newWord] != undefined) {
+            letter = 0;
+            let theId = String(line + "-" + newWord + "-" + letter);
+            document.getElementById(theId).focus();
+            this.editLocation.line = Number(line);
+            this.editLocation.word = Number(newWord);
+            this.editLocation.letter = Number(letter);
+            this.displayArray = this.editorArray;
+            this.editorArray = [];
+            this.displayArray.forEach(line => {
+              this.editorArray.push(line);
+            });
+          } else {
             word = this.editorArray[line].length - 1;
             letter = this.editorArray[line][word].length;
-
             const activeLineEnd = String(line + "-" + word + "-" + letter);
 
             document.getElementById(activeLineEnd).focus();
@@ -823,15 +1006,99 @@ export default {
             this.displayArray.forEach(line => {
               this.editorArray.push(line);
             });
-          } catch (e) {
-            throw e;
           }
-        } else {
-          console.log("UNDEFINED");
+          // } catch (e) {
+          //   throw e;
+          // } finally {
+          this.selectHorizontal("right");
+          // }
         }
-      } catch (e) {
-        console.log("there was an error, it didn't work", e);
+      } else if (this.editorArray[line][word][newLetter] != undefined) {
+        // debugger;
+        let theId = String(line + "-" + word + "-" + newLetter);
+        this.selectionLocation.start = { line: line, word: word, letter: newLetter };
+        this.selectionLocation.end = { line: line, word: word, letter: newLetter };
+
+        document.getElementById(theId).focus();
+        this.editLocation.line = Number(line);
+        this.editLocation.word = Number(word);
+        this.editLocation.letter = Number(newLetter);
+        this.displayArray = this.editorArray;
+        this.editorArray = [];
+        this.displayArray.forEach(line => {
+          this.editorArray.push(line);
+        });
+      } else if (this.editorArray[line][newWord] != undefined) {
+        if (dir == "left") {
+          letter = this.editorArray[line][newWord].length;
+        } else if (dir == "right") {
+          letter = 0;
+        }
+        this.selectionLocation.start = { line: line, word: newWord, letter: letter };
+        this.selectionLocation.end = { line: line, word: newWord, letter: letter };
+
+        let theId = String(line + "-" + newWord + "-" + letter);
+        document.getElementById(theId).focus();
+        this.editLocation.line = Number(line);
+        this.editLocation.word = Number(newWord);
+        this.editLocation.letter = Number(letter);
+        this.displayArray = this.editorArray;
+        this.editorArray = [];
+        this.displayArray.forEach(line => {
+          this.editorArray.push(line);
+        });
+      } else if (dir == "left") {
+        // try {
+        word = 0;
+        letter = 0;
+
+        this.selectionLocation.start = { line: line, word: word, letter: letter };
+        this.selectionLocation.end = { line: line, word: word, letter: letter };
+
+        const activeLineEnd = String(line + "-" + word + "-" + letter);
+
+        document.getElementById(activeLineEnd).focus();
+
+        this.editLocation.line = Number(line);
+        this.editLocation.word = Number(word);
+        this.editLocation.letter = Number(letter);
+        this.displayArray = this.editorArray;
+        this.editorArray = [];
+        this.displayArray.forEach(line => {
+          this.editorArray.push(line);
+        });
+        // } catch (e) {
+        //   throw e;
+        // }
+      } else if (dir == "right") {
+        // try {
+        word = this.editorArray[line].length - 1;
+        letter = this.editorArray[line][word].length;
+
+        this.selectionLocation.start = { line: line, word: word, letter: letter };
+        this.selectionLocation.end = { line: line, word: word, letter: letter };
+
+        const activeLineEnd = String(line + "-" + word + "-" + letter);
+
+        document.getElementById(activeLineEnd).focus();
+
+        this.editLocation.line = Number(line);
+        this.editLocation.word = Number(word);
+        this.editLocation.letter = Number(letter);
+        this.displayArray = this.editorArray;
+        this.editorArray = [];
+        this.displayArray.forEach(line => {
+          this.editorArray.push(line);
+        });
+        // } catch (e) {
+        //   throw e;
+        // }
+      } else {
+        console.log("UNDEFINED");
       }
+      // } catch (e) {
+      //   console.log("there was an error, it didn't work", e);
+      // }
     },
   },
   mounted() {},
@@ -860,6 +1127,7 @@ export default {
   height: 100%
   margin: 60px auto
   padding 20px 0
+  user-select: none
   .edit-content
     text-align: left
     outline: none
@@ -929,6 +1197,10 @@ export default {
       overflow-x: none
     .selected-letter
       background-color: rgba(193, 204, 230, 0.82)
+    .empty-paragraph
+      width: 0
+      margin-left: -1px
+      user-select: none
     .suggestionBox
       min-width: 150px
       max-height: 100px
