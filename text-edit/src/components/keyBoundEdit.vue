@@ -36,7 +36,7 @@
                 :tabindex="lineIndex"
                 :id="lineIndex+'-'+index+'-'+key"
                 @keypress.prevent.stop="logKeyboard"
-                @keydown.delete.prevent.stop="deletePrev"
+                @keydown.delete.prevent.stop="deleteEvent"
                 @keydown.enter.prevent.stop="newLine"
                 @keydown.down="arrowVertical('down')"
                 @keydown.up="arrowVertical('up')"
@@ -61,7 +61,7 @@
                 :id="lineIndex+'-'+index+'-'+(word.length)"
                 :class="{'selected-letter': inRange(lineIndex, index, word.length) && singleSelection, 'empty-paragraph': word[0] == '\n'}"
                 @keypress.prevent.stop="logKeyboard"
-                @keydown.delete.prevent.stop="deletePrev"
+                @keydown.delete.prevent.stop="deleteEvent"
                 @keydown.enter.prevent.stop="newLine"
                 @keydown.down="arrowVertical('down')"
                 @keydown.up="arrowVertical('up')"
@@ -667,7 +667,7 @@ export default {
         this.editorArray.push(line);
       });
     },
-    deletePrev(ev) {
+    deleteEvent(ev) {
       // handle the backspace key
 
       let focus = document.activeElement.id;
@@ -683,79 +683,221 @@ export default {
       let theId = String(line + "-" + word + "-" + letter);
       if (!_.isMatch(this.selectionLocation.start, this.selectionLocation.end)) {
         this.clearSelection();
+        this.selectionLocation.start.letter = parseInt(this.selectionLocation.start.letter);
+        this.selectionLocation.end.letter = parseInt(this.selectionLocation.end.letter);
+        if (_.isMatch(this.selectionLocation.start, this.selectionLocation.end)) {
+          let tempLoc = this.selectionLocation.start.letter;
+          tempLoc++;
+          const second = this.editorArray[line][word].slice(tempLoc);
+          tempLoc--;
+          let first = this.editorArray[line][word].slice(0, tempLoc);
+          let newWord = first + second;
+          this.editorArray[line].splice(word, 1, newWord);
+        }
         this.selectionLocation.start = { line: line, word: word, letter: letter };
         this.selectionLocation.end = { line: line, word: word, letter: letter };
-      } else if (ev.altKey) {
-        if (word != 0) {
-          this.editorArray[line].splice(word, 1);
-          word--;
-          letter = this.editorArray[line][word].length;
+      } else if (ev.code === "Backspace") {
+        if (line == 0 && word == 0 && letter == 0) {
+          console.log("Already at the begining!!");
+          return;
+        } else if (ev.altKey) {
+          const wordEndLetter = this.editorArray[line][word].length;
+          if (letter == 0) {
+            const prevWord = word - 1;
+            const tempLetter = this.editorArray[line][prevWord].length;
+            const newWord = this.editorArray[line][prevWord] + this.editorArray[line][word];
+            this.editorArray[line].splice(prevWord, 2, newWord);
+            word = prevWord;
+            letter = tempLetter;
+          } else if (word != 0 && letter == wordEndLetter) {
+            this.editorArray[line].splice(word, 1);
+            word--;
+            letter = this.editorArray[line][word].length;
+          } else if (word != 0 || letter != 0) {
+            const tempWord = this.editorArray[line][word].slice(parseInt(letter));
+            this.editorArray[line].splice(word, 1, tempWord);
+            letter = 0;
+          }
+          theId = String(line + "-" + word + "-" + letter);
+          process.nextTick(() => {
+            document.getElementById(theId).focus();
+          });
+        } else if (ev.metaKey) {
+          const lineEndWord = this.editorArray[line].length - 1;
+          const lineEndLetter = this.editorArray[line][lineEndWord].length;
+          const wordEndLetter = this.editorArray[line][word].length;
+          if (word == 0 && letter == 0) {
+            console.log("can't do that dumb dumb");
+          } else if (letter == lineEndLetter && word == lineEndWord) {
+            this.editorArray.splice(line, 1, [" "]);
+            line;
+            word = 0;
+            letter = 0;
+          } else if (letter == wordEndLetter) {
+            const tempLine = _.slice(this.editorArray[line], parseInt(word) + 1);
+            this.editorArray.splice(line, 1, tempLine);
+            word = 0;
+            letter = 0;
+          } else {
+            const tempWord = this.editorArray[line][word].slice(parseInt(letter));
+            this.editorArray[line].splice(word, 1, tempWord);
+            const tempLine = _.slice(this.editorArray[line], word);
+            this.editorArray.splice(line, 1, tempLine);
+            word = 0;
+            letter = 0;
+          }
+          theId = String(line + "-" + word + "-" + letter);
+          process.nextTick(() => {
+            document.getElementById(theId).focus();
+          });
+        } else if (word == 0 && letter == 0) {
+          const prevLine = line - 1;
+          let wordsInLine = this.editorArray[prevLine].length;
+          // wordsInLine++;
+          theId = String(prevLine + "-" + wordsInLine + "-" + 0);
+          this.editorArray[line].forEach(word => {
+            this.editorArray[prevLine].push(word);
+          });
+          this.editorArray.splice(line, 1);
+          process.nextTick(() => {
+            document.getElementById(theId).focus();
+          });
+          // this.removeDisplayArray(this.target);
+          this.target = prevLine;
+        } else if (letter == 0) {
+          let prevWord = word - 1;
+          let tempLetter = this.editorArray[line][prevWord].length;
+          const newWord = this.editorArray[line][prevWord] + this.editorArray[line][word];
+          this.editorArray[line].splice(prevWord, 2, newWord);
+          theId = String(line + "-" + prevWord + "-" + tempLetter);
+          process.nextTick(() => {
+            document.getElementById(theId).focus();
+          });
+        } else if (this.editorArray[line][word][0] == "\n") {
+          const prevLine = line - 1;
+          let wordsInLine = this.editorArray[prevLine].length - 1;
+          let lettersInWord = this.editorArray[prevLine][wordsInLine].length;
+          // wordsInLine++;
+          theId = String(prevLine + "-" + wordsInLine + "-" + lettersInWord);
+          this.editorArray.splice(line, 1);
+          process.nextTick(() => {
+            document.getElementById(theId).focus();
+          });
+          // this.removeDisplayArray(this.target);
+          this.target = prevLine;
         } else {
-          this.editorArray[line].splice(word, 1, " ");
-          letter = 0;
-        }
-        theId = String(line + "-" + word + "-" + letter);
-        process.nextTick(() => {
-          document.getElementById(theId).focus();
-        });
-      } else if (ev.metaKey) {
-        this.editorArray.splice(line, 1, [" "]);
-        line;
-        word = 0;
-        letter = 0;
-        theId = String(line + "-" + word + "-" + letter);
-        process.nextTick(() => {
-          document.getElementById(theId).focus();
-        });
-      } else if (line == 0 && word == 0 && letter == 0) {
-        console.log("Already at the begining!!");
-        return;
-      } else if (word == 0 && letter == 0) {
-        const prevLine = line - 1;
-        let wordsInLine = this.editorArray[prevLine].length;
-        // wordsInLine++;
-        theId = String(prevLine + "-" + wordsInLine + "-" + 0);
-        this.editorArray[line].forEach(word => {
-          this.editorArray[prevLine].push(word);
-        });
-        this.editorArray.splice(line, 1);
-        process.nextTick(() => {
-          document.getElementById(theId).focus();
-        });
-        // this.removeDisplayArray(this.target);
-        this.target = prevLine;
-      } else if (letter == 0) {
-        let prevWord = word - 1;
-        let tempLetter = this.editorArray[line][prevWord].length;
-        const newWord = this.editorArray[line][prevWord] + this.editorArray[line][word];
-        this.editorArray[line].splice(prevWord, 2, newWord);
-        theId = String(line + "-" + prevWord + "-" + tempLetter);
-        process.nextTick(() => {
-          document.getElementById(theId).focus();
-        });
-      } else if (this.editorArray[line][word][0] == "\n") {
-        const prevLine = line - 1;
-        let wordsInLine = this.editorArray[prevLine].length - 1;
-        let lettersInWord = this.editorArray[prevLine][wordsInLine].length;
-        // wordsInLine++;
-        theId = String(prevLine + "-" + wordsInLine + "-" + lettersInWord);
-        this.editorArray.splice(line, 1);
-        process.nextTick(() => {
-          document.getElementById(theId).focus();
-        });
-        // this.removeDisplayArray(this.target);
-        this.target = prevLine;
-      } else {
-        const second = this.editorArray[line][word].slice(letter);
-        letter--;
-        let first = this.editorArray[line][word].slice(0, letter);
-        let newWord = first + second;
-        this.editorArray[line].splice(word, 1, newWord);
+          const second = this.editorArray[line][word].slice(letter);
+          letter--;
+          let first = this.editorArray[line][word].slice(0, letter);
+          let newWord = first + second;
+          this.editorArray[line].splice(word, 1, newWord);
 
-        theId = String(line + "-" + word + "-" + letter);
-        process.nextTick(() => {
-          document.getElementById(theId).focus();
-        });
+          theId = String(line + "-" + word + "-" + letter);
+          process.nextTick(() => {
+            document.getElementById(theId).focus();
+          });
+        }
+      } else if (ev.code === "Delete") {
+        const lastLine = this.editorArray.length - 1;
+        const lastWord = this.editorArray[lastLine].length - 1;
+        const lastLetter = this.editorArray[lastLine][lastWord].length;
+        const endWord = this.editorArray[line].length - 1;
+        const endLetter = this.editorArray[line][endWord].length;
+        const wordEndLetter = this.editorArray[line][word].length;
+
+        if (line == lastLine && word == lastWord && letter == lastLetter) {
+          console.log("Already at the end!!");
+          return;
+        } else if (ev.altKey) {
+          const lineEndWord = this.editorArray[line].length - 1;
+          const lineEndLetter = this.editorArray[line][lineEndWord].length;
+          const wordEndLetter = this.editorArray[line][word].length;
+          if (letter == 0) {
+            this.editorArray[line].splice(word, 1);
+            letter = 0;
+          } else if (letter != wordEndLetter) {
+            const tempWord = this.editorArray[line][word].slice(0, parseInt(letter));
+            this.editorArray[line].splice(word, 1, tempWord);
+          } else {
+            const nextWord = parseInt(word) + 1;
+            const newWord = this.editorArray[line][word] + this.editorArray[line][nextWord];
+            this.editorArray[line].splice(word, 2, newWord);
+          }
+          theId = String(line + "-" + word + "-" + letter);
+          process.nextTick(() => {
+            document.getElementById(theId).focus();
+          });
+        } else if (ev.metaKey) {
+          const lineEndWord = this.editorArray[line].length - 1;
+          const lineEndLetter = this.editorArray[line][lineEndWord].length;
+          const wordEndLetter = this.editorArray[line][word].length;
+          if (word == lineEndWord && letter == lineEndLetter) {
+            console.log("can't do that dumb dumb");
+          } else if (letter == 0 && word == 0) {
+            this.editorArray.splice(line, 1, [" "]);
+            line;
+            word = 0;
+            letter = 0;
+          } else if (letter == 0) {
+            const tempLine = _.slice(this.editorArray[line], 0, parseInt(word));
+            this.editorArray.splice(line, 1, tempLine);
+            word--;
+            letter = this.editorArray[line][word].length;
+          } else {
+            const tempWord = this.editorArray[line][word].slice(0, parseInt(letter));
+            this.editorArray[line].splice(word, 1, tempWord);
+            const tempLine = _.slice(this.editorArray[line], 0, parseInt(word) + 1);
+            this.editorArray.splice(line, 1, tempLine);
+          }
+          theId = String(line + "-" + word + "-" + letter);
+          process.nextTick(() => {
+            document.getElementById(theId).focus();
+          });
+        } else if (this.editorArray[line][word][0] == "\n") {
+          const nextLine = parseInt(line) + 1;
+          const tempLine = [];
+          this.editorArray[nextLine].forEach(word => {
+            tempLine.push(word);
+          });
+          console.log(tempLine);
+          theId = String(line + "-" + 0 + "-" + 0);
+          this.editorArray.splice(line, 2, tempLine);
+          this.target = line;
+          process.nextTick(() => {
+            document.getElementById(theId).focus();
+          });
+        } else if (word == endWord && letter == endLetter) {
+          const nextLine = parseInt(line) + 1;
+          // wordsInLine++;
+          theId = String(line + "-" + word + "-" + letter);
+          this.editorArray[nextLine].forEach(word => {
+            this.editorArray[line].push(word);
+          });
+          this.editorArray.splice(nextLine, 1);
+          process.nextTick(() => {
+            document.getElementById(theId).focus();
+          });
+          // this.removeDisplayArray(this.target);
+          this.target = line;
+        } else if (letter == wordEndLetter) {
+          let nextWord = parseInt(word) + 1;
+          const newWord = this.editorArray[line][word] + this.editorArray[line][nextWord];
+          this.editorArray[line].splice(word, 2, newWord);
+          theId = String(line + "-" + word + "-" + letter);
+          process.nextTick(() => {
+            document.getElementById(theId).focus();
+          });
+        } else {
+          theId = String(line + "-" + word + "-" + letter);
+          const first = this.editorArray[line][word].slice(0, letter);
+          letter++;
+          const second = this.editorArray[line][word].slice(letter);
+          const newWord = first + second;
+          this.editorArray[line].splice(word, 1, newWord);
+          process.nextTick(() => {
+            document.getElementById(theId).focus();
+          });
+        }
       }
       this.editLocation.line = Number(line);
       this.editLocation.word = Number(word);
