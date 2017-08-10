@@ -38,8 +38,8 @@
                 @keypress.prevent.stop="logKeyboard"
                 @keydown.delete.prevent.stop="deleteEvent"
                 @keydown.enter.prevent.stop="newLine"
-                @keydown.down="arrowVertical('down')"
-                @keydown.up="arrowVertical('up')"
+                @keydown.down="arrowVertical('down', $event)"
+                @keydown.up="arrowVertical('up', $event)"
                 @keydown.left.meta.stop.prevent="arrowHorizontal('start', $event)"
                 @keydown.right.meta.stop.prevent="arrowHorizontal('end', $event)"
                 @keydown.left.alt.stop.prevent="arrowHorizontal('prev', $event)"
@@ -63,8 +63,8 @@
                 @keypress.prevent.stop="logKeyboard"
                 @keydown.delete.prevent.stop="deleteEvent"
                 @keydown.enter.prevent.stop="newLine"
-                @keydown.down="arrowVertical('down')"
-                @keydown.up="arrowVertical('up')"
+                @keydown.down="arrowVertical('down', $event)"
+                @keydown.up="arrowVertical('up', $event)"
                 @keydown.left.shift.stop.prevent="arrowHorizontal('overL', $event)"
                 @keydown.right.shift.stop.prevent="arrowHorizontal('overR', $event)"
                 @keydown.left.meta.stop.prevent="arrowHorizontal('start', $event)"
@@ -495,6 +495,25 @@ export default {
 
           let newline = _.concat(before, newWord, after);
           this.editorArray.splice(lineS, 1, newline);
+        } else {
+          let one = this.editorArray[lineS];
+          let two = this.editorArray[lineE];
+
+          wordE++;
+          let before = _.slice(one, 0, wordS);
+          let after = _.slice(two, wordE);
+          wordE--;
+
+          let diff = lineE - lineS + 1;
+
+          let middleStart = this.editorArray[lineS][wordS].slice(0, letterS);
+          letterE++;
+          let middleEnd = this.editorArray[lineE][wordE].slice(letterE);
+
+          let newWord = middleStart + middleEnd;
+
+          let newline = _.concat(before, newWord, after);
+          this.editorArray.splice(lineS, diff, newline);
         }
 
         letterS++;
@@ -682,7 +701,6 @@ export default {
       let letter = focus.slice(split + 1);
       let theId = String(line + "-" + word + "-" + letter);
       if (!_.isMatch(this.selectionLocation.start, this.selectionLocation.end)) {
-        this.clearSelection();
         this.selectionLocation.start.letter = parseInt(this.selectionLocation.start.letter);
         this.selectionLocation.end.letter = parseInt(this.selectionLocation.end.letter);
         if (_.isMatch(this.selectionLocation.start, this.selectionLocation.end)) {
@@ -694,6 +712,7 @@ export default {
           let newWord = first + second;
           this.editorArray[line].splice(word, 1, newWord);
         }
+        this.clearSelection();
         this.selectionLocation.start = { line: line, word: word, letter: letter };
         this.selectionLocation.end = { line: line, word: word, letter: letter };
       } else if (ev.code === "Backspace") {
@@ -910,17 +929,18 @@ export default {
         this.selectionLocation.end = { line: line, word: word, letter: letter };
       });
     },
-    arrowVertical(dir) {
-      const curLine = this.editLocation.line;
+    arrowVertical(dir, ev) {
+      let curLine = this.editLocation.line;
+      let curWord = this.editLocation.word;
+      let curLetter = this.editLocation.letter;
+
       let nextLine = parseInt(curLine);
       if (dir == "down") {
         nextLine++;
       } else if (dir == "up") {
         nextLine--;
       }
-      const curWord = this.editLocation.word;
       let nextWord = parseInt(curWord);
-      const curLetter = this.editLocation.letter;
       let nextLetter = parseInt(curLetter);
       if (this.editorArray[nextLine]) {
         let currLength = curLine == 0 ? -1 : 0;
@@ -961,6 +981,52 @@ export default {
         this.editLocation.line = Number(nextLine);
         this.editLocation.word = Number(nextWord);
         this.editLocation.letter = Number(nextLetter);
+
+        let tempLetter = parseInt(nextLetter);
+        if (ev.shiftKey) {
+          if (
+            dir == "down" &&
+            !_.isMatch(this.selectionLocation.start, this.selectionLocation.end) &&
+            this.selectionLocation.start.line == curLine
+          ) {
+            tempLetter--;
+            this.selectionLocation.start = { line: nextLine, word: nextWord, letter: tempLetter };
+          } else if (
+            dir == "up" &&
+            !_.isMatch(this.selectionLocation.start, this.selectionLocation.end) &&
+            this.selectionLocation.end.line == curLine
+          ) {
+            if (this.selectionLocation.start.letter != 0) {
+              this.selectionLocation.start.letter--;
+            } else {
+              this.selectionLocation.start.word--;
+              this.selectionLocation.start.letter = this.editLocation[
+                this.selectionLocation.start.line
+              ][this.selectionLocation.start.word].length;
+            }
+            this.selectionLocation.end = { line: nextLine, word: nextWord, letter: nextLetter };
+          } else {
+            if (dir == "down") {
+              tempLetter--;
+              this.selectionLocation.end = { line: nextLine, word: nextWord, letter: tempLetter };
+            } else if (dir == "up") {
+              if (!_.isMatch(this.selectionLocation.start, this.selectionLocation.end)) {
+              } else if (this.selectionLocation.end.letter != 0) {
+                this.selectionLocation.end.letter--;
+              } else {
+                this.selectionLocation.end.word--;
+                this.selectionLocation.end.letter = this.editLocation[
+                  this.selectionLocation.end.line
+                ][this.selectionLocation.end.word].length;
+              }
+              this.selectionLocation.start = { line: nextLine, word: nextWord, letter: nextLetter };
+            }
+          }
+        } else {
+          this.selectionLocation.start = { line: nextLine, word: nextWord, letter: nextLetter };
+          this.selectionLocation.end = { line: nextLine, word: nextWord, letter: nextLetter };
+        }
+
         this.displayArray = this.editorArray;
         this.editorArray = [];
         this.displayArray.forEach(line => {
