@@ -65,14 +65,14 @@
                 @keydown.enter.prevent.stop="newLine"
                 @keydown.down="arrowVertical('down', $event)"
                 @keydown.up="arrowVertical('up', $event)"
-                @keydown.left.shift.stop.prevent="arrowHorizontal('overL', $event)"
-                @keydown.right.shift.stop.prevent="arrowHorizontal('overR', $event)"
                 @keydown.left.meta.stop.prevent="arrowHorizontal('start', $event)"
                 @keydown.right.meta.stop.prevent="arrowHorizontal('end', $event)"
                 @keydown.left.alt.stop.prevent="arrowHorizontal('prev', $event)"
                 @keydown.right.alt.stop.prevent="arrowHorizontal('next', $event)"
-                @keydown.left="arrowHorizontal('left', $event)"
-                @keydown.right="arrowHorizontal('right', $event)"
+                @keydown.left.stop.prevent="arrowHorizontal('left', $event)"
+                @keydown.right.stop.prevent="arrowHorizontal('right', $event)"
+                @keydown.left.shift.stop.prevent="arrowHorizontal('overL', $event)"
+                @keydown.right.shift.stop.prevent="arrowHorizontal('overR', $event)"
                 @mousedown.prevent="mouseDown"
                 @mouseup.prevent="mouseUp"
                 @mouseover="mouseOver"
@@ -959,6 +959,10 @@ export default {
       let curWord = this.editLocation.word;
       let curLetter = this.editLocation.letter;
 
+      if (dir == "up" && curLine == 0) {
+        return;
+      }
+
       let nextLine = parseInt(curLine);
       if (dir == "down") {
         nextLine++;
@@ -967,40 +971,60 @@ export default {
       }
       let nextWord = parseInt(curWord);
       let nextLetter = parseInt(curLetter);
+
       if (this.editorArray[nextLine]) {
-        let currLength = curLine == 0 ? -1 : 0;
+        // calc number if lines in each array
+        let currLength = 0;
         let nextLength = 0;
         this.editorArray[curLine].forEach((word, i) => {
+          // letters from zero to current location
           if (i > curWord) {
             return;
           } else if (i == curWord) {
             currLength = parseInt(currLength) + parseInt(curLetter);
           } else {
-            currLength = parseInt(currLength) + word.length;
+            currLength = parseInt(currLength) + word.length + 1;
           }
         });
-        this.editorArray[nextLine].forEach((word, i) => {
-          if (word.length + nextLength >= currLength && nextLength < currLength) {
-            nextWord = i;
-            nextLetter = currLength - nextLength;
-            nextLength = parseInt(nextLength) + word.length;
-          } else {
-            nextLength = parseInt(nextLength) + word.length;
+        let word = 0;
+        let letter = 0;
+        try {
+          this.editorArray[nextLine].forEach((tempWord, index) => {
+            if (currLength == nextLength) {
+              word = index;
+              throw "done";
+            }
+            _.split(this.editorArray[nextLine][index], "").forEach((tempLetter, key) => {
+              if (currLength == nextLength) {
+                word = index;
+                letter = key;
+                throw "done";
+              } else {
+                nextLength++;
+              }
+            });
+            if (currLength == nextLength) {
+              word = index;
+              letter = this.editorArray[nextLine][word].length;
+              throw "done";
+            }
+            nextLength++;
+          });
+        } catch (e) {
+          // console.log(e);
+        } finally {
+          if (currLength >= nextLength && curLetter != 0 && curWord != 0) {
+            word = this.editorArray[nextLine].length - 1;
+            letter = this.editorArray[nextLine][word].length;
+          } else if (this.editorArray[curLine][0][0] == "\n") {
+            word = 0;
+            letter = 0;
           }
-        });
-        if (this.editorArray[nextLine].length <= 1) {
-          nextWord = 0;
-          nextLetter =
-            this.editorArray[nextLine][nextWord].length > nextLetter
-              ? nextLetter
-              : this.editorArray[nextLine][nextWord].length;
-        } else if (
-          this.editorArray[nextLine][nextWord] == undefined ||
-          this.editorArray[nextLine][nextWord][nextLetter] == undefined
-        ) {
-          nextWord = this.editorArray[nextLine].length - 1;
-          nextLetter = this.editorArray[nextLine][nextWord].length;
         }
+
+        nextWord = word;
+        nextLetter = letter;
+
         let theId = String(nextLine + "-" + nextWord + "-" + nextLetter);
         document.getElementById(theId).focus();
         this.editLocation.line = Number(nextLine);
@@ -1008,7 +1032,9 @@ export default {
         this.editLocation.letter = Number(nextLetter);
 
         let tempLetter = parseInt(nextLetter);
+
         if (ev.shiftKey) {
+          // select using up and down arrows
           if (
             dir == "down" &&
             !_.isMatch(this.selectionLocation.start, this.selectionLocation.end) &&
