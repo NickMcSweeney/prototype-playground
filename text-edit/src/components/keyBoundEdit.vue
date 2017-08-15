@@ -533,16 +533,14 @@ export default {
         this.editLocation.word = Number(wordS);
         this.editLocation.letter = Number(letterS);
         const theId = String(lineS + "-" + wordS + "-" + letterS);
-        // debugger;
         process.nextTick(() => {
           document.getElementById(theId).focus();
         });
       } catch (e) {}
     },
-    logKeyboard(ev) {
+    logKeyboard: _.throttle(function _logKeyboard(ev) {
       // track keyboard events and display
       // this is the big workhorse function
-      // debugger;
       this.clearSelection();
       let focus = document.activeElement.id;
       let split = focus.indexOf("-");
@@ -588,7 +586,7 @@ export default {
         }
       } else {
         // this is for all 'normal' keys that display letters and symbols
-        // debugger;
+
         let newWord = first + ev.key + second;
         this.editorArray[line].splice(word, 1, newWord);
         letter++;
@@ -605,8 +603,8 @@ export default {
         // this.setDisplayArray(this.target);
         this.target = line;
       }
-    },
-    enterEvent(ev) {
+    }, 25),
+    enterEvent: _.throttle(function _enterEvent(ev) {
       // TODO: Prevent empty lines w/out content (insert unicode symbol)
       // handle the enter key event
 
@@ -696,8 +694,8 @@ export default {
       process.nextTick(() => {
         document.getElementById(theId).focus();
       });
-    },
-    deleteEvent(ev) {
+    }, 100),
+    deleteEvent: _.throttle(function _deleteEvent(ev) {
       // handle the backspace key
       let focus = document.activeElement.id;
       let split = focus.indexOf("-");
@@ -764,19 +762,19 @@ export default {
             this.editorArray.splice(line, 1, [" "]);
             line;
             word = 0;
-            letter = 0;
+            letter = 1;
           } else if (letter == wordEndLetter) {
             const tempLine = _.slice(this.editorArray[line], parseInt(word) + 1);
             this.editorArray.splice(line, 1, tempLine);
             word = 0;
-            letter = 0;
+            letter = 1;
           } else {
             const tempWord = this.editorArray[line][word].slice(parseInt(letter));
             this.editorArray[line].splice(word, 1, tempWord);
             const tempLine = _.slice(this.editorArray[line], word);
             this.editorArray.splice(line, 1, tempLine);
             word = 0;
-            letter = 0;
+            letter = 1;
           }
           theId = String(line + "-" + word + "-" + letter);
           process.nextTick(() => {
@@ -965,7 +963,7 @@ export default {
         this.selectionLocation.start = { line: line, word: word, letter: letter };
         this.selectionLocation.end = { line: line, word: word, letter: letter };
       });
-    },
+    }, 50),
     arrowVertical(dir, ev) {
       let curLine = this.editLocation.line;
       let curWord = this.editLocation.word;
