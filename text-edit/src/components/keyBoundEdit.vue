@@ -2,12 +2,17 @@
   <div class="editor">
         <div
           class="edit-content"
+          @click="mouseOutOfBounds"
+          @mousedown.prevent="mouseDown(ev = {target:{id:
+  endOfLastLine}})"
+          @mouseup.prevent="mouseUp(ev = {target:{id:
+  endOfLastLine}})"
         >
         <!-- loop through line -->
           <div
             class="display-line"
             v-for="(line, lineIndex) in editorArray"
-            @click="logMouse($event,line,lineIndex)"
+            @click.stop.prevent="logMouse($event,line,lineIndex)"
             :class="{'focused-line': isLineFocused(lineIndex)}"
           >
           <div
@@ -25,7 +30,7 @@
             <div
               v-for="(word, index) in line"
               class="display-word"
-              @click="selectLine($event, lineIndex)"
+              @click.prevent.stop="selectLine($event, lineIndex)"
               v-on:dblclick="selectWord"
               >
               <!-- loop through letters -->
@@ -48,8 +53,8 @@
                 @keydown.right.stop.prevent="arrowHorizontal('right', $event)"
                 @keydown.left.shift.stop.prevent="arrowHorizontal('overL', $event)"
                 @keydown.right.shift.stop.prevent="arrowHorizontal('overR', $event)"
-                @mousedown.prevent="mouseDown"
-                @mouseup.prevent="mouseUp"
+                @mousedown.stop.prevent="mouseDown"
+                @mouseup.stop.prevent="mouseUp"
                 @mouseover="mouseOver"
               >
                 {{ letter }}
@@ -73,8 +78,8 @@
                 @keydown.right.stop.prevent="arrowHorizontal('right', $event)"
                 @keydown.left.shift.stop.prevent="arrowHorizontal('overL', $event)"
                 @keydown.right.shift.stop.prevent="arrowHorizontal('overR', $event)"
-                @mousedown.prevent="mouseDown"
-                @mouseup.prevent="mouseUp"
+                @mousedown.stop.prevent="mouseDown"
+                @mouseup.stop.prevent="mouseUp"
                 @mouseover="mouseOver"
               >
                 {{ '' }}
@@ -155,6 +160,15 @@ export default {
       const letter = this.editLocation.letter;
       return line + "-" + word + "-" + letter;
     },
+    endOfLastLine() {
+      if (this.editorArray[0][0] == [" "]) {
+        return "0-0-1";
+      }
+      const line = this.editorArray.length - 1;
+      const word = this.editorArray[line].length - 1;
+      const letter = this.editorArray[line][word].length;
+      return line + "-" + word + "-" + letter;
+    },
   },
   methods: {
     lastIndex(lineId) {
@@ -164,6 +178,21 @@ export default {
     },
     isLineFocused(index) {
       return index == this.editLocation.line;
+    },
+    mouseOutOfBounds() {
+      this.target = this.endOfLastLine;
+
+      let focus = this.endOfLastLine;
+      let split = focus.indexOf("-");
+      const line = focus.slice(0, split);
+      focus = focus.slice(split + 1);
+      split = focus.indexOf("-");
+      const word = focus.slice(0, split);
+      const letter = focus.slice(split + 1);
+
+      this.editLocation.line = Number(line);
+      this.editLocation.word = Number(word);
+      this.editLocation.letter = Number(letter);
     },
     logMouse(event, line, index) {
       if (event.detail === 3) {
