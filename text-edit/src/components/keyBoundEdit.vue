@@ -437,36 +437,64 @@ export default {
         });
       }
     },
-    selectHorizontal(dir) {
+    selectHorizontal(dir, prev) {
       let line = parseInt(this.editLocation.line);
       let word = parseInt(this.editLocation.word);
       let letter = parseInt(this.editLocation.letter);
-
       if (dir == "left") {
         if (_.isEqual(this.selectionLocation.start, this.selectionLocation.end)) {
+          // left from no selection
           this.selectionLocation.start = { line: line, word: word, letter: letter };
           let tempStr = letter.toString();
           this.selectionLocation.end = { line: line, word: word, letter: tempStr };
         } else if (
-          this.selectionLocation.start.letter != letter ||
-          this.selectionLocation.start.word != word ||
-          this.selectionLocation.start.line != line
+          this.selectionLocation.start.line == this.editLocation.line &&
+          this.selectionLocation.start.word == this.editLocation.word &&
+          this.selectionLocation.start.letter == this.editLocation.letter
         ) {
+          // reset selection
           this.selectionLocation.start = { line: line, word: word, letter: letter };
+          this.selectionLocation.end = { line: line, word: word, letter: letter };
+        } else if (_.isMatch(this.selectionLocation.start, prev)) {
+          // left from start
+          this.selectionLocation.start = { line: line, word: word, letter: letter };
+        } else if (
+          this.selectionLocation.end.line == prev.line &&
+          this.selectionLocation.end.word == prev.word &&
+          this.selectionLocation.end.letter + 1 == prev.letter
+        ) {
+          // left from end
+          this.selectionLocation.end = { line: line, word: word, letter: letter - 1 };
         } else {
           console.log("So this is entirely unhandled");
         }
       } else if (dir == "right") {
         if (_.isEqual(this.selectionLocation.start, this.selectionLocation.end)) {
+          // right from no selection
           letter--;
           let tempStr = letter.toString();
           this.selectionLocation.start = { line: line, word: word, letter: tempStr };
           this.selectionLocation.end = { line: line, word: word, letter: letter };
-          // letter++;
         } else if (
-          this.selectionLocation.start.letter != letter ||
-          this.selectionLocation.start.word != word ||
-          this.selectionLocation.start.line != line
+          this.selectionLocation.end.line == this.editLocation.line &&
+          this.selectionLocation.end.word == this.editLocation.word &&
+          this.selectionLocation.end.letter == this.editLocation.letter - 1
+        ) {
+          // reset selection
+          letter--;
+          this.selectionLocation.start = { line: line, word: word, letter: letter };
+          this.selectionLocation.end = { line: line, word: word, letter: letter };
+        } else if (
+          this.selectionLocation.start.line == prev.line &&
+          this.selectionLocation.start.word == prev.word &&
+          this.selectionLocation.start.letter == prev.letter
+        ) {
+          letter--;
+          this.selectionLocation.start = { line: line, word: word, letter: letter + 1 };
+        } else if (
+          this.selectionLocation.end.line == prev.line &&
+          this.selectionLocation.end.word == prev.word &&
+          this.selectionLocation.end.letter + 1 == prev.letter
         ) {
           letter--;
           this.selectionLocation.end = { line: line, word: word, letter: letter };
@@ -1073,43 +1101,103 @@ export default {
 
         if (ev.shiftKey) {
           // select using up and down arrows
-          if (
-            dir == "down" &&
-            !_.isMatch(this.selectionLocation.start, this.selectionLocation.end) &&
-            this.selectionLocation.start.line == curLine
-          ) {
-            tempLetter--;
-            this.selectionLocation.start = { line: nextLine, word: nextWord, letter: tempLetter };
-          } else if (
-            dir == "up" &&
-            !_.isMatch(this.selectionLocation.start, this.selectionLocation.end) &&
-            this.selectionLocation.end.line == curLine
-          ) {
-            if (this.selectionLocation.start.letter != 0) {
-              this.selectionLocation.start.letter--;
-            } else {
-              this.selectionLocation.start.word--;
-              this.selectionLocation.start.letter = this.editLocation[
-                this.selectionLocation.start.line
-              ][this.selectionLocation.start.word].length;
+
+          if (dir == "up") {
+            // select up
+            if (_.isMatch(this.selectionLocation.start, this.selectionLocation.end)) {
+              // if arrow up from no selection
+              curLetter--;
+              this.selectionLocation.end.letter = curLetter;
+              this.selectionLocation.start = { line: nextLine, word: nextWord, letter: nextLetter };
+            } else if (_.isMatch(this.selectionLocation.start, this.editLocation)) {
+              // if reset selection
+              this.selectionLocation.end = { line: nextLine, word: nextWord, letter: nextLetter };
+              this.selectionLocation.start = { line: nextLine, word: nextWord, letter: nextLetter };
+            } else if (this.selectionLocation.end.line == this.selectionLocation.start.line) {
+              // part of line already selected - up
+              this.selectionLocation.start = { line: nextLine, word: nextWord, letter: nextLetter };
+            } else if (this.selectionLocation.start.line == curLine) {
+              // if arrow up from selectionLocation.start
+              this.selectionLocation.start = { line: nextLine, word: nextWord, letter: nextLetter };
+            } else if (this.selectionLocation.end.line == curLine) {
+              // if arrow up from selectionLocation.end
+              if (
+                this.compareLoc(this.selectionLocation.start, {
+                  line: nextLine,
+                  word: nextWord,
+                  letter: nextLetter,
+                }) == "less"
+              ) {
+                tempLetter--;
+                this.selectionLocation.end = { line: nextLine, word: nextWord, letter: tempLetter };
+              } else if (
+                this.compareLoc(this.selectionLocation.start, {
+                  line: nextLine,
+                  word: nextWord,
+                  letter: nextLetter,
+                }) == "greater"
+              ) {
+                this.selectionLocation.start = {
+                  line: nextLine,
+                  word: nextWord,
+                  letter: nextLetter,
+                };
+              }
             }
-            this.selectionLocation.end = { line: nextLine, word: nextWord, letter: nextLetter };
-          } else {
-            if (dir == "down") {
+          } else if (dir == "down") {
+            // select down
+            if (_.isMatch(this.selectionLocation.start, this.selectionLocation.end)) {
+              // if arrow down from no selection
               tempLetter--;
               this.selectionLocation.end = { line: nextLine, word: nextWord, letter: tempLetter };
-            } else if (dir == "up") {
-              if (!_.isMatch(this.selectionLocation.start, this.selectionLocation.end)) {
-              } else if (this.selectionLocation.end.letter != 0) {
-                this.selectionLocation.end.letter--;
-              } else {
-                this.selectionLocation.end.word--;
-                this.selectionLocation.end.letter = this.editLocation[
-                  this.selectionLocation.end.line
-                ][this.selectionLocation.end.word].length;
-              }
+            } else if (
+              this.selectionLocation.end.line == this.editLocation.line &&
+              this.selectionLocation.end.word == this.editLocation.word &&
+              this.selectionLocation.end.letter + 1 == this.editLocation.letter
+            ) {
+              // if reset selection
+              this.selectionLocation.end = { line: nextLine, word: nextWord, letter: nextLetter };
               this.selectionLocation.start = { line: nextLine, word: nextWord, letter: nextLetter };
+            } else if (this.selectionLocation.end.line == this.selectionLocation.start.line) {
+              // part of line already selected - down
+              tempLetter--;
+              this.selectionLocation.end = { line: nextLine, word: nextWord, letter: tempLetter };
+            } else if (this.selectionLocation.start.line == curLine) {
+              // if arrow down from selectionLocation.start
+              if (
+                this.compareLoc(this.selectionLocation.end, {
+                  line: nextLine,
+                  word: nextWord,
+                  letter: nextLetter,
+                }) == "less"
+              ) {
+                tempLetter--;
+                this.selectionLocation.end = {
+                  line: nextLine,
+                  word: nextWord,
+                  letter: tempLetter,
+                };
+              } else if (
+                this.compareLoc(this.selectionLocation.end, {
+                  line: nextLine,
+                  word: nextWord,
+                  letter: nextLetter,
+                }) == "greater"
+              ) {
+                this.selectionLocation.start = {
+                  line: nextLine,
+                  word: nextWord,
+                  letter: nextLetter,
+                };
+              }
+            } else if (this.selectionLocation.end.line == curLine) {
+              // if arrow down from selectionLocation.end
+              tempLetter--;
+              this.selectionLocation.end = { line: nextLine, word: nextWord, letter: tempLetter };
             }
+          } else {
+            this.selectionLocation.start = { line: nextLine, word: nextWord, letter: nextLetter };
+            this.selectionLocation.end = { line: nextLine, word: nextWord, letter: nextLetter };
           }
         } else {
           this.selectionLocation.start = { line: nextLine, word: nextWord, letter: nextLetter };
@@ -1132,6 +1220,8 @@ export default {
       const line = parseInt(this.editLocation.line);
       let word = parseInt(this.editLocation.word);
       let letter = parseInt(this.editLocation.letter);
+
+      const prev = { line: line, word: word, letter: letter };
 
       let newWord = 0;
       let newLetter = 0;
@@ -1260,7 +1350,7 @@ export default {
             });
           }
 
-          this.selectHorizontal("left");
+          this.selectHorizontal("left", prev);
         } else if (dir == "overR") {
           // try {
           if (this.editorArray[line][word][newLetter] != undefined) {
@@ -1305,7 +1395,7 @@ export default {
           // } catch (e) {
           //   throw e;
           // } finally {
-          this.selectHorizontal("right");
+          this.selectHorizontal("right", prev);
           // }
         }
       } else if (this.editorArray[line][word].length >= newLetter && newLetter >= 0) {
