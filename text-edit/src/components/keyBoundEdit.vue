@@ -33,7 +33,17 @@
               @click.prevent.stop="selectLine($event, lineIndex)"
               v-on:dblclick="selectWord"
               >
-              <!-- loop through letters -->
+              <!-- loop through letters
+
+              @keydown.left.meta.stop.prevent="arrowHorizontal('start', $event)"
+              @keydown.right.meta.stop.prevent="arrowHorizontal('end', $event)"
+              @keydown.left.alt.stop.prevent="arrowHorizontal('prev', $event)"
+              @keydown.right.alt.stop.prevent="arrowHorizontal('next', $event)"
+              @keydown.left.stop.prevent="arrowHorizontal('left', $event)"
+              @keydown.right.stop.prevent="arrowHorizontal('right', $event)"
+              @keydown.left.shift.stop.prevent="arrowHorizontal('overL', $event)"
+              @keydown.right.shift.stop.prevent="arrowHorizontal('overR', $event)"
+             -->
               <div
                 v-for="(letter, key) in word"
                 class="display-letter"
@@ -45,14 +55,8 @@
                 @keydown.enter.prevent.stop="enterEvent"
                 @keydown.down="arrowVertical('down', $event)"
                 @keydown.up="arrowVertical('up', $event)"
-                @keydown.left.meta.stop.prevent="arrowHorizontal('start', $event)"
-                @keydown.right.meta.stop.prevent="arrowHorizontal('end', $event)"
-                @keydown.left.alt.stop.prevent="arrowHorizontal('prev', $event)"
-                @keydown.right.alt.stop.prevent="arrowHorizontal('next', $event)"
-                @keydown.left.stop.prevent="arrowHorizontal('left', $event)"
-                @keydown.right.stop.prevent="arrowHorizontal('right', $event)"
-                @keydown.left.shift.stop.prevent="arrowHorizontal('overL', $event)"
-                @keydown.right.shift.stop.prevent="arrowHorizontal('overR', $event)"
+                @keydown.left.stop.prevent="arrowHorizontal($event, 'left')"
+                @keydown.right.stop.prevent="arrowHorizontal($event, 'right')"
                 @mousedown.stop.prevent="mouseDown"
                 @mouseup.stop.prevent="mouseUp"
                 @mouseover="mouseOver"
@@ -70,14 +74,8 @@
                 @keydown.enter.prevent.stop="enterEvent"
                 @keydown.down="arrowVertical('down', $event)"
                 @keydown.up="arrowVertical('up', $event)"
-                @keydown.left.meta.stop.prevent="arrowHorizontal('start', $event)"
-                @keydown.right.meta.stop.prevent="arrowHorizontal('end', $event)"
-                @keydown.left.alt.stop.prevent="arrowHorizontal('prev', $event)"
-                @keydown.right.alt.stop.prevent="arrowHorizontal('next', $event)"
-                @keydown.left.stop.prevent="arrowHorizontal('left', $event)"
-                @keydown.right.stop.prevent="arrowHorizontal('right', $event)"
-                @keydown.left.shift.stop.prevent="arrowHorizontal('overL', $event)"
-                @keydown.right.shift.stop.prevent="arrowHorizontal('overR', $event)"
+                @keydown.left.stop.prevent="arrowHorizontal($event, 'left')"
+                @keydown.right.stop.prevent="arrowHorizontal($event, 'right')"
                 @mousedown.stop.prevent="mouseDown"
                 @mouseup.stop.prevent="mouseUp"
                 @mouseover="mouseOver"
@@ -325,12 +323,7 @@ export default {
       this.selectionLocation.end = { line: line, word: word, letter: letter };
       try {
         letter++;
-        this.editLocation.line = Number(line);
-        this.editLocation.word = Number(word);
-        this.editLocation.letter = Number(letter);
-        const theId = String(line + "-" + word + "-" + letter);
-
-        document.getElementById(theId).focus();
+        this.updateData(line, word, letter);
       } catch (e) {}
     },
     selectLine(ev, line) {
@@ -342,12 +335,7 @@ export default {
         this.selectionLocation.end = { line: line, word: word, letter: letter };
         try {
           letter++;
-          this.editLocation.line = Number(line);
-          this.editLocation.word = Number(word);
-          this.editLocation.letter = Number(letter);
-          const theId = String(line + "-" + word + "-" + letter);
-
-          document.getElementById(theId).focus();
+          this.updateData(line, word, letter);
         } catch (e) {}
       }
     },
@@ -395,20 +383,7 @@ export default {
         const word = 0;
         const letter = 0;
 
-        const activeLineEnd = String(line + "-" + word + "-" + letter);
-
-        process.nextTick(() => {
-          document.getElementById(activeLineEnd).focus();
-        });
-
-        this.editLocation.line = Number(line);
-        this.editLocation.word = Number(word);
-        this.editLocation.letter = Number(letter);
-        this.displayArray = this.editorArray;
-        this.editorArray = [];
-        this.displayArray.forEach(line => {
-          this.editorArray.push(line);
-        });
+        this.updateData(line, word, letter);
       }
     },
     selectEnd(ev) {
@@ -421,135 +396,64 @@ export default {
         const word = this.editorArray[line].length - 1;
         let letter = this.editorArray[line][word].length;
 
-        const activeLineEnd = String(line + "-" + word + "-" + letter);
-
-        process.nextTick(() => {
-          document.getElementById(activeLineEnd).focus();
-        });
-
-        this.editLocation.line = Number(line);
-        this.editLocation.word = Number(word);
-        this.editLocation.letter = Number(letter);
-        this.displayArray = this.editorArray;
-        this.editorArray = [];
-        this.displayArray.forEach(line => {
-          this.editorArray.push(line);
-        });
+        this.updateData(line, word, letter);
       }
-    },
-    selectHorizontal(dir, prev) {
-      let line = parseInt(this.editLocation.line);
-      let word = parseInt(this.editLocation.word);
-      let letter = parseInt(this.editLocation.letter);
-      if (dir == "left") {
-        if (_.isEqual(this.selectionLocation.start, this.selectionLocation.end)) {
-          // left from no selection
-          this.selectionLocation.start = { line: line, word: word, letter: letter };
-          let tempStr = letter.toString();
-          this.selectionLocation.end = { line: line, word: word, letter: tempStr };
-        } else if (
-          this.selectionLocation.start.line == this.editLocation.line &&
-          this.selectionLocation.start.word == this.editLocation.word &&
-          this.selectionLocation.start.letter == this.editLocation.letter
-        ) {
-          // reset selection
-          this.selectionLocation.start = { line: line, word: word, letter: letter };
-          this.selectionLocation.end = { line: line, word: word, letter: letter };
-        } else if (_.isMatch(this.selectionLocation.start, prev)) {
-          // left from start
-          this.selectionLocation.start = { line: line, word: word, letter: letter };
-        } else if (
-          this.selectionLocation.end.line == prev.line &&
-          this.selectionLocation.end.word == prev.word &&
-          this.selectionLocation.end.letter + 1 == prev.letter
-        ) {
-          // left from end
-          this.selectionLocation.end = { line: line, word: word, letter: letter - 1 };
-        } else {
-          console.log("So this is entirely unhandled");
-        }
-      } else if (dir == "right") {
-        if (_.isEqual(this.selectionLocation.start, this.selectionLocation.end)) {
-          // right from no selection
-          letter--;
-          let tempStr = letter.toString();
-          this.selectionLocation.start = { line: line, word: word, letter: tempStr };
-          this.selectionLocation.end = { line: line, word: word, letter: letter };
-        } else if (
-          this.selectionLocation.end.line == this.editLocation.line &&
-          this.selectionLocation.end.word == this.editLocation.word &&
-          this.selectionLocation.end.letter == this.editLocation.letter - 1
-        ) {
-          // reset selection
-          letter--;
-          this.selectionLocation.start = { line: line, word: word, letter: letter };
-          this.selectionLocation.end = { line: line, word: word, letter: letter };
-        } else if (
-          this.selectionLocation.start.line == prev.line &&
-          this.selectionLocation.start.word == prev.word &&
-          this.selectionLocation.start.letter == prev.letter
-        ) {
-          letter--;
-          this.selectionLocation.start = { line: line, word: word, letter: letter + 1 };
-        } else if (
-          this.selectionLocation.end.line == prev.line &&
-          this.selectionLocation.end.word == prev.word &&
-          this.selectionLocation.end.letter + 1 == prev.letter
-        ) {
-          letter--;
-          this.selectionLocation.end = { line: line, word: word, letter: letter };
-        } else {
-          console.log("So this is entirely unhandled");
-        }
-        letter++;
-      }
-      this.editLocation.line = Number(line);
-      this.editLocation.word = Number(word);
-      this.editLocation.letter = Number(letter);
-      this.displayArray = this.editorArray;
-      this.editorArray = [];
-      this.displayArray.forEach(line => {
-        this.editorArray.push(line);
-      });
-      const theId = String(line + "-" + word + "-" + letter);
-      document.getElementById(theId).focus();
     },
     clearSelection() {
-      try {
-        let lineS = 0;
-        let wordS = 0;
-        let letterS = 0;
-        let lineE = 0;
-        let wordE = 0;
-        let letterE = 0;
+      // TODO: REMOVE TRY FROM STATEMENT !!!
+      let lineS = 0;
+      let wordS = 0;
+      let letterS = 0;
+      let lineE = 0;
+      let wordE = 0;
+      let letterE = 0;
+      let singleLetter = false;
+      let notSelection = false;
 
-        if (this.compareLoc(this.selectionLocation.start, this.selectionLocation.end) === "less") {
-          lineS = this.selectionLocation.start.line;
-          wordS = this.selectionLocation.start.word;
-          letterS = this.selectionLocation.start.letter;
-          lineE = this.selectionLocation.end.line;
-          wordE = this.selectionLocation.end.word;
-          letterE = this.selectionLocation.end.letter;
-        } else if (
-          this.compareLoc(this.selectionLocation.end, this.selectionLocation.start) === "less"
-        ) {
-          lineS = this.selectionLocation.end.line;
-          wordS = this.selectionLocation.end.word;
-          letterS = this.selectionLocation.end.letter;
-          lineE = this.selectionLocation.start.line;
-          wordE = this.selectionLocation.start.word;
-          letterE = this.selectionLocation.start.letter;
-        } else {
-          throw e;
-        }
-        if (lineS == lineE && wordS == wordE && letterS == letterE) {
-          throw "NORMAL Line";
-        } else if (lineS == lineE && wordS == wordE) {
+      if (this.compareLoc(this.selectionLocation.start, this.selectionLocation.end) === "less") {
+        lineS = this.selectionLocation.start.line;
+        wordS = this.selectionLocation.start.word;
+        letterS = this.selectionLocation.start.letter;
+        lineE = this.selectionLocation.end.line;
+        wordE = this.selectionLocation.end.word;
+        letterE = this.selectionLocation.end.letter;
+      } else if (
+        this.compareLoc(this.selectionLocation.end, this.selectionLocation.start) === "less"
+      ) {
+        lineS = this.selectionLocation.end.line;
+        wordS = this.selectionLocation.end.word;
+        letterS = this.selectionLocation.end.letter;
+        lineE = this.selectionLocation.start.line;
+        wordE = this.selectionLocation.start.word;
+        letterE = this.selectionLocation.start.letter;
+      } else if (
+        this.compareLoc(this.selectionLocation.end, this.selectionLocation.start) === "equal" &&
+        !_.isMatch(this.selectionLocation.start, this.selectionLocation.end)
+      ) {
+        singleLetter = true;
+        lineS = this.selectionLocation.start.line;
+        wordS = this.selectionLocation.start.word;
+        letterS = Number(this.selectionLocation.start.letter);
+        lineE = this.selectionLocation.end.line;
+        wordE = this.selectionLocation.end.word;
+        letterE = Number(this.selectionLocation.end.letter);
+      } else {
+        notSelection = true;
+      }
+      if (!notSelection) {
+        if (singleLetter) {
+          let before = this.editorArray[lineS][wordS].slice(0, letterS);
+          letterE++;
+          let after = this.editorArray[lineE][wordE].slice(letterE);
+          letterE--;
+          this.editorArray[lineS].splice(wordS, 1, before + after);
+        } else if (_.isMatch(this.selectionLocation.start, this.selectionLocation.end)) {
+        } else if (lineS === lineE && wordS === wordE) {
           let before = this.editorArray[lineS][wordS].slice(0, letterS);
           letterE++;
           let after = this.editorArray[lineE][wordE].slice(letterE);
           this.editorArray[lineS].splice(wordS, 1, before + after);
-        } else if (lineS == lineE) {
+        } else if (lineS === lineE) {
           wordE++;
           let before = _.slice(this.editorArray[lineS], 0, wordS);
           let after = _.slice(this.editorArray[lineS], wordE);
@@ -586,29 +490,18 @@ export default {
         this.selectionLocation.start = { line: lineS, word: wordS, letter: letterS };
         this.selectionLocation.end = { line: lineS, word: wordS, letter: letterS };
         letterS--;
-        this.editLocation.line = Number(lineS);
-        this.editLocation.word = Number(wordS);
-        this.editLocation.letter = Number(letterS);
-        const theId = String(lineS + "-" + wordS + "-" + letterS);
-        process.nextTick(() => {
-          document.getElementById(theId).focus();
-        });
-      } catch (e) {}
+        this.updateData(lineS, wordS, letterS);
+      }
     },
     logKeyboard: _.throttle(function _logKeyboard(ev) {
       // track keyboard events and display
       // this is the big workhorse function
       this.clearSelection();
-      let focus = document.activeElement.id;
-      let split = focus.indexOf("-");
 
-      let line = focus.slice(0, split);
+      let line = this.editLocation.line;
+      let word = this.editLocation.word;
+      let letter = this.editLocation.letter;
 
-      focus = focus.slice(split + 1);
-      split = focus.indexOf("-");
-
-      let word = focus.slice(0, split);
-      let letter = focus.slice(split + 1);
       if (this.editorArray[line][word].includes("\n")) {
         this.editorArray[line][word] = "";
       } else if (this.editorArray[line][word].includes(" ")) {
@@ -631,34 +524,15 @@ export default {
           this.editorArray[line].splice(word, 0, first);
           letter = 0;
           word++;
-          const theId = String(line + "-" + word + "-" + letter);
-          process.nextTick(() => {
-            document.getElementById(theId).focus();
-          });
-        } else {
-          const theId = String(line + "-" + word + "-" + letter);
-          process.nextTick(() => {
-            document.getElementById(theId).focus();
-          });
         }
+        this.updateData(line, word, letter);
       } else {
         // this is for all 'normal' keys that display letters and symbols
 
         let newWord = first + ev.key + second;
         this.editorArray[line].splice(word, 1, newWord);
         letter++;
-        const theId = String(line + "-" + word + "-" + letter);
-        process.nextTick(() => {
-          document.getElementById(theId).focus();
-        });
-      }
-      // check to see if this was the last edit to a line and send the line to be saved if so
-      if (this.editorArray.length - 1 > this.target && line != this.target) {
-        // this.updateDisplayArray(this.target);
-        this.target = line;
-      } else if (line != this.target) {
-        // this.setDisplayArray(this.target);
-        this.target = line;
+        this.updateData(line, word, letter);
       }
     }, 25),
     enterEvent: _.throttle(function _enterEvent(ev) {
@@ -738,19 +612,7 @@ export default {
           console.log("there was an error creating a new line, it didn't work", e);
         }
       }
-      this.target = line;
-      this.editLocation.line = Number(line);
-      this.editLocation.word = Number(word);
-      this.editLocation.letter = Number(letter);
-      this.displayArray = this.editorArray;
-      this.editorArray = [];
-      this.displayArray.forEach(line => {
-        this.editorArray.push(line);
-      });
-      const theId = String(line + "-" + word + "-" + letter);
-      process.nextTick(() => {
-        document.getElementById(theId).focus();
-      });
+      this.updateData(line, word, letter);
     }, 100),
     deleteEvent: _.throttle(function _deleteEvent(ev) {
       // handle the backspace key
@@ -764,7 +626,6 @@ export default {
 
       let word = focus.slice(0, split);
       let letter = focus.slice(split + 1);
-      let theId = String(line + "-" + word + "-" + letter);
       if (!_.isMatch(this.selectionLocation.start, this.selectionLocation.end)) {
         this.selectionLocation.start.letter = parseInt(this.selectionLocation.start.letter);
         this.selectionLocation.end.letter = parseInt(this.selectionLocation.end.letter);
@@ -781,6 +642,7 @@ export default {
         line = this.editLocation.line;
         word = this.editLocation.word;
         letter = this.editLocation.letter;
+        this.updateData(line, word, letter);
         this.selectionLocation.start = { line: line, word: word, letter: letter };
         this.selectionLocation.end = { line: line, word: word, letter: letter };
       } else if (ev.code === "Backspace") {
@@ -805,10 +667,6 @@ export default {
             this.editorArray[line].splice(word, 1, tempWord);
             letter = 0;
           }
-          theId = String(line + "-" + word + "-" + letter);
-          process.nextTick(() => {
-            document.getElementById(theId).focus();
-          });
         } else if (ev.metaKey) {
           const lineEndWord = this.editorArray[line].length - 1;
           const lineEndLetter = this.editorArray[line][lineEndWord].length;
@@ -833,10 +691,6 @@ export default {
             word = 0;
             letter = 1;
           }
-          theId = String(line + "-" + word + "-" + letter);
-          process.nextTick(() => {
-            document.getElementById(theId).focus();
-          });
         } else if (word == 0 && letter == 0) {
           const prevLine = line - 1;
           let wordsInLine = this.editorArray[prevLine].length;
@@ -851,56 +705,38 @@ export default {
             const newWord =
               this.editorArray[prevLine][prevWord] + this.editorArray[prevLine][prevWord + 1];
             this.editorArray[prevLine].splice(prevWord, 2, newWord);
-            theId = String(prevLine + "-" + prevWord + "-" + tempLetter);
             line = prevLine;
             word = prevWord;
             letter = tempLetter;
           } else {
             this.editorArray.splice(prevLine, 1);
-            theId = String(prevLine + "-" + 0 + "-" + 0);
-            this.target = prevLine;
             line = prevLine;
             word = 0;
             letter = 0;
           }
-
-          process.nextTick(() => {
-            document.getElementById(theId).focus();
-          });
-          // this.removeDisplayArray(this.target);
         } else if (letter == 0) {
           let prevWord = word - 1;
           let tempLetter = this.editorArray[line][prevWord].length;
           const newWord = this.editorArray[line][prevWord] + this.editorArray[line][word];
           this.editorArray[line].splice(prevWord, 2, newWord);
-          theId = String(line + "-" + prevWord + "-" + tempLetter);
-          process.nextTick(() => {
-            document.getElementById(theId).focus();
-          });
+          word = prevWord;
+          letter = tempLetter;
         } else if (this.editorArray[line][word][0] == "\n") {
           const prevLine = line - 1;
           let wordsInLine = this.editorArray[prevLine].length - 1;
           let lettersInWord = this.editorArray[prevLine][wordsInLine].length;
-          // wordsInLine++;
-          theId = String(prevLine + "-" + wordsInLine + "-" + lettersInWord);
           this.editorArray.splice(line, 1);
-          process.nextTick(() => {
-            document.getElementById(theId).focus();
-          });
-          // this.removeDisplayArray(this.target);
-          this.target = prevLine;
+          line = prevLine;
+          word = wordsInLine;
+          letter = lettersInWord;
         } else {
           const second = this.editorArray[line][word].slice(letter);
           letter--;
           let first = this.editorArray[line][word].slice(0, letter);
           let newWord = first + second;
           this.editorArray[line].splice(word, 1, newWord);
-
-          theId = String(line + "-" + word + "-" + letter);
-          process.nextTick(() => {
-            document.getElementById(theId).focus();
-          });
         }
+        this.updateData(line, word, letter);
       } else if (ev.code === "Delete") {
         const lastLine = this.editorArray.length - 1;
         const lastWord = this.editorArray[lastLine].length - 1;
@@ -927,10 +763,6 @@ export default {
             const newWord = this.editorArray[line][word] + this.editorArray[line][nextWord];
             this.editorArray[line].splice(word, 2, newWord);
           }
-          theId = String(line + "-" + word + "-" + letter);
-          process.nextTick(() => {
-            document.getElementById(theId).focus();
-          });
         } else if (ev.metaKey) {
           const lineEndWord = this.editorArray[line].length - 1;
           const lineEndLetter = this.editorArray[line][lineEndWord].length;
@@ -953,30 +785,20 @@ export default {
             const tempLine = _.slice(this.editorArray[line], 0, parseInt(word) + 1);
             this.editorArray.splice(line, 1, tempLine);
           }
-          theId = String(line + "-" + word + "-" + letter);
-          process.nextTick(() => {
-            document.getElementById(theId).focus();
-          });
         } else if (this.editorArray[line][word][0] == "\n") {
           const nextLine = parseInt(line) + 1;
           const tempLine = [];
           this.editorArray[nextLine].forEach(word => {
             tempLine.push(word);
           });
-          theId = String(line + "-" + 0 + "-" + 0);
+          word = 0;
+          letter = 0;
           this.editorArray.splice(line, 2, tempLine);
-          this.target = line;
-          process.nextTick(() => {
-            document.getElementById(theId).focus();
-          });
         } else if (word == endWord && letter == endLetter) {
           const nextLine = parseInt(line) + 1;
           if (this.editorArray[nextLine][0][0] == "\n") {
             this.editorArray.splice(nextLine, 1);
-            theId = String(line + "-" + word + "-" + letter);
-            this.target = line;
           } else {
-            theId = String(line + "-" + word + "-" + letter);
             this.editorArray[nextLine].forEach(word => {
               this.editorArray[line].push(word);
             });
@@ -984,42 +806,23 @@ export default {
             let nextWord = parseInt(word) + 1;
             const newWord = this.editorArray[line][word] + this.editorArray[line][nextWord];
             this.editorArray[line].splice(word, 2, newWord);
-            theId = String(line + "-" + word + "-" + letter);
           }
-          this.target = line;
-          process.nextTick(() => {
-            document.getElementById(theId).focus();
-          });
         } else if (letter == wordEndLetter) {
           let nextWord = parseInt(word) + 1;
           const newWord = this.editorArray[line][word] + this.editorArray[line][nextWord];
           this.editorArray[line].splice(word, 2, newWord);
-          theId = String(line + "-" + word + "-" + letter);
-          process.nextTick(() => {
-            document.getElementById(theId).focus();
-          });
         } else {
-          theId = String(line + "-" + word + "-" + letter);
           const first = this.editorArray[line][word].slice(0, letter);
           letter++;
           const second = this.editorArray[line][word].slice(letter);
           const newWord = first + second;
           this.editorArray[line].splice(word, 1, newWord);
-          process.nextTick(() => {
-            document.getElementById(theId).focus();
-          });
         }
+        this.updateData(line, word, letter);
       }
-      this.editLocation.line = Number(line);
-      this.editLocation.word = Number(word);
-      this.editLocation.letter = Number(letter);
-      this.displayArray = this.editorArray;
-      this.editorArray = [];
-      this.displayArray.forEach(line => {
-        this.editorArray.push(line);
-        this.selectionLocation.start = { line: line, word: word, letter: letter };
-        this.selectionLocation.end = { line: line, word: word, letter: letter };
-      });
+
+      this.selectionLocation.start = { line: line, word: word, letter: letter };
+      this.selectionLocation.end = { line: line, word: word, letter: letter };
     }, 50),
     arrowVertical(dir, ev) {
       let curLine = this.editLocation.line;
@@ -1091,11 +894,7 @@ export default {
         nextWord = word;
         nextLetter = letter;
 
-        let theId = String(nextLine + "-" + nextWord + "-" + nextLetter);
-        document.getElementById(theId).focus();
-        this.editLocation.line = Number(nextLine);
-        this.editLocation.word = Number(nextWord);
-        this.editLocation.letter = Number(nextLetter);
+        this.updateData(nextLine, nextWord, nextLetter);
 
         let tempLetter = parseInt(nextLetter);
 
@@ -1203,21 +1002,12 @@ export default {
           this.selectionLocation.start = { line: nextLine, word: nextWord, letter: nextLetter };
           this.selectionLocation.end = { line: nextLine, word: nextWord, letter: nextLetter };
         }
-
-        this.displayArray = this.editorArray;
-        this.editorArray = [];
-        this.displayArray.forEach(line => {
-          this.editorArray.push(line);
-        });
       } else {
         console.log("CANT");
       }
     },
-    arrowHorizontal(dir, ev) {
-      // try {
-      // TODO: workout end of line issues
-      // look at making arrow keys wrap lines
-      const line = parseInt(this.editLocation.line);
+    arrowHorizontal(ev, dir) {
+      let line = parseInt(this.editLocation.line);
       let word = parseInt(this.editLocation.word);
       let letter = parseInt(this.editLocation.letter);
 
@@ -1225,307 +1015,231 @@ export default {
 
       let newWord = 0;
       let newLetter = 0;
-      if (dir == "left" || dir == "overL") newWord = word - 1;
-      else if (dir == "right" || dir == "overR") newWord = word + 1;
-      if (dir == "left" || dir == "overL") newLetter = letter - 1;
-      else if (dir == "right" || dir == "overR") newLetter = letter + 1;
 
-      if (dir == "start") {
-        let theId = String(line + "-0-0");
-        document.getElementById(theId).focus();
-        if (!ev.shiftKey) {
-          this.selectionLocation.start = { line: line, word: 0, letter: 0 };
-          this.selectionLocation.end = { line: line, word: 0, letter: 0 };
+      if (dir == "left") newWord = word - 1;
+      else if (dir == "right") newWord = word + 1;
+      if (dir == "left") newLetter = letter - 1;
+      else if (dir == "right") newLetter = letter + 1;
+
+      if (ev.metaKey && dir == "left") {
+        // command key + left arrow - move to begining of line
+        letter = 0;
+        word = 0;
+        this.updateData(line, word, letter);
+        if (ev.shiftKey) {
+          this.selectHorizontal("left", prev, "meta");
         } else {
-          this.selectionLocation.start = { line: line, word: 0, letter: 0 };
+          this.selectionLocation.start = { line: line, word: word, letter: letter };
+          this.selectionLocation.end = { line: line, word: word, letter: letter };
         }
-
-        this.editLocation.line = Number(line);
-        this.editLocation.word = Number(0);
-        this.editLocation.letter = Number(0);
-        this.displayArray = this.editorArray;
-        this.editorArray = [];
-        this.displayArray.forEach(line => {
-          this.editorArray.push(line);
-        });
-      } else if (dir == "end") {
+      } else if (ev.metaKey && dir == "right") {
+        // command key + right arrow - move to end of line
         word = this.editorArray[line].length - 1;
         letter = this.editorArray[line][word].length;
 
-        const activeLineEnd = String(line + "-" + word + "-" + letter);
-        if (!ev.shiftKey) {
+        this.updateData(line, word, letter);
+        if (ev.shiftKey) {
+          this.selectHorizontal("right", prev, "meta");
+        } else {
           this.selectionLocation.start = { line: line, word: word, letter: letter };
           this.selectionLocation.end = { line: line, word: word, letter: letter };
+        }
+      } else if (ev.altKey && dir == "left") {
+        // alt key + left arrow - move to begining of word
+        if (letter == 0) word--;
+        letter = 0;
+
+        this.updateData(line, word, letter);
+        if (ev.shiftKey) {
+          this.selectHorizontal("left", prev, "alt");
         } else {
+          this.selectionLocation.start = { line: line, word: word, letter: letter };
           this.selectionLocation.end = { line: line, word: word, letter: letter };
         }
-
-        document.getElementById(activeLineEnd).focus();
-
-        this.editLocation.line = Number(line);
-        this.editLocation.word = Number(word);
-        this.editLocation.letter = Number(letter);
-        this.displayArray = this.editorArray;
-        this.editorArray = [];
-        this.displayArray.forEach(line => {
-          this.editorArray.push(line);
-        });
-      } else if (dir == "prev") {
-        let theId = String(line + "-" + word + "-0");
-        if (!ev.shiftKey) {
-          this.selectionLocation.start = { line: line, word: word, letter: 0 };
-          this.selectionLocation.end = { line: line, word: word, letter: 0 };
-        } else {
-          this.selectionLocation.start = { line: line, word: word, letter: 0 };
-        }
-        document.getElementById(theId).focus();
-        this.editLocation.line = Number(line);
-        this.editLocation.word = Number(word);
-        this.editLocation.letter = Number(0);
-        this.displayArray = this.editorArray;
-        this.editorArray = [];
-        this.displayArray.forEach(line => {
-          this.editorArray.push(line);
-        });
-      } else if (dir == "next") {
+      } else if (ev.altKey && dir == "right") {
+        // alt key + right arrow - move to end of word
+        if (letter == this.editorArray[line][word].length) word++;
         letter = this.editorArray[line][word].length;
 
-        const activeLineEnd = String(line + "-" + word + "-" + letter);
-        if (!ev.shiftKey) {
+        this.updateData(line, word, letter);
+        if (ev.shiftKey) {
+          this.selectHorizontal("right", prev, "alt");
+        } else {
           this.selectionLocation.start = { line: line, word: word, letter: letter };
           this.selectionLocation.end = { line: line, word: word, letter: letter };
-        } else {
-          this.selectionLocation.end = { line: line, word: word, letter: letter };
         }
-
-        document.getElementById(activeLineEnd).focus();
-
-        this.editLocation.line = Number(line);
-        this.editLocation.word = Number(word);
-        this.editLocation.letter = Number(letter);
-        this.displayArray = this.editorArray;
-        this.editorArray = [];
-        this.displayArray.forEach(line => {
-          this.editorArray.push(line);
-        });
-      } else if (ev.shiftKey) {
-        if (dir == "overL") {
-          if (this.editorArray[line][word][newLetter] != undefined) {
-            let theId = String(line + "-" + word + "-" + newLetter);
-            document.getElementById(theId).focus();
-            this.editLocation.line = Number(line);
-            this.editLocation.word = Number(word);
-            this.editLocation.letter = Number(newLetter);
-            this.displayArray = this.editorArray;
-            this.editorArray = [];
-            this.displayArray.forEach(line => {
-              this.editorArray.push(line);
-            });
-          } else if (this.editorArray[line][newWord] != undefined) {
-            letter = this.editorArray[line][newWord].length;
-            let theId = String(line + "-" + newWord + "-" + letter);
-            document.getElementById(theId).focus();
-            this.editLocation.line = Number(line);
-            this.editLocation.word = Number(newWord);
-            this.editLocation.letter = Number(letter);
-            this.displayArray = this.editorArray;
-            this.editorArray = [];
-            this.displayArray.forEach(line => {
-              this.editorArray.push(line);
-            });
-          } else {
-            word = 0;
-            letter = 0;
-            const activeLineEnd = String(line + "-" + word + "-" + letter);
-
-            document.getElementById(activeLineEnd).focus();
-
-            this.editLocation.line = Number(line);
-            this.editLocation.word = Number(word);
-            this.editLocation.letter = Number(letter);
-            this.displayArray = this.editorArray;
-            this.editorArray = [];
-            this.displayArray.forEach(line => {
-              this.editorArray.push(line);
-            });
-          }
-
-          this.selectHorizontal("left", prev);
-        } else if (dir == "overR") {
-          // try {
-          if (this.editorArray[line][word][newLetter] != undefined) {
-            let theId = String(line + "-" + word + "-" + newLetter);
-            document.getElementById(theId).focus();
-            this.editLocation.line = Number(line);
-            this.editLocation.word = Number(word);
-            this.editLocation.letter = Number(newLetter);
-            this.displayArray = this.editorArray;
-            this.editorArray = [];
-            this.displayArray.forEach(line => {
-              this.editorArray.push(line);
-            });
-          } else if (this.editorArray[line][newWord] != undefined) {
-            letter = 0;
-            let theId = String(line + "-" + newWord + "-" + letter);
-            document.getElementById(theId).focus();
-            this.editLocation.line = Number(line);
-            this.editLocation.word = Number(newWord);
-            this.editLocation.letter = Number(letter);
-            this.displayArray = this.editorArray;
-            this.editorArray = [];
-            this.displayArray.forEach(line => {
-              this.editorArray.push(line);
-            });
-          } else {
-            word = this.editorArray[line].length - 1;
-            letter = this.editorArray[line][word].length;
-            const activeLineEnd = String(line + "-" + word + "-" + letter);
-
-            document.getElementById(activeLineEnd).focus();
-
-            this.editLocation.line = Number(line);
-            this.editLocation.word = Number(word);
-            this.editLocation.letter = Number(letter);
-            this.displayArray = this.editorArray;
-            this.editorArray = [];
-            this.displayArray.forEach(line => {
-              this.editorArray.push(line);
-            });
-          }
-          // } catch (e) {
-          //   throw e;
-          // } finally {
-          this.selectHorizontal("right", prev);
-          // }
-        }
-      } else if (this.editorArray[line][word].length >= newLetter && newLetter >= 0) {
-        let theId = String(line + "-" + word + "-" + newLetter);
-        this.selectionLocation.start = { line: line, word: word, letter: newLetter };
-        this.selectionLocation.end = { line: line, word: word, letter: newLetter };
-
-        document.getElementById(theId).focus();
-        this.editLocation.line = Number(line);
-        this.editLocation.word = Number(word);
-        this.editLocation.letter = Number(newLetter);
-        this.displayArray = this.editorArray;
-        this.editorArray = [];
-        this.displayArray.forEach(line => {
-          this.editorArray.push(line);
-        });
-      } else if (this.editorArray[line][newWord] != undefined) {
-        if (dir == "left") {
-          letter = this.editorArray[line][newWord].length;
-        } else if (dir == "right") {
-          letter = 0;
-        }
-        this.selectionLocation.start = { line: line, word: newWord, letter: letter };
-        this.selectionLocation.end = { line: line, word: newWord, letter: letter };
-
-        let theId = String(line + "-" + newWord + "-" + letter);
-        document.getElementById(theId).focus();
-        this.editLocation.line = Number(line);
-        this.editLocation.word = Number(newWord);
-        this.editLocation.letter = Number(letter);
-        this.displayArray = this.editorArray;
-        this.editorArray = [];
-        this.displayArray.forEach(line => {
-          this.editorArray.push(line);
-        });
-      } else if (
-        this.displayArray[line][word][Number(letter)] == undefined &&
-        dir == "right" &&
-        !ev.metaKey &&
-        !ev.altKey &&
-        this.displayArray[Number(line) + 1] != undefined
-      ) {
-        let newLine = parseInt(line) + 1;
-        word = 0;
-        letter = 0;
-        this.selectionLocation.start = { line: newLine, word: word, letter: letter };
-        this.selectionLocation.end = { line: newLine, word: word, letter: letter };
-
-        const activeLineEnd = String(newLine + "-" + word + "-" + letter);
-
-        document.getElementById(activeLineEnd).focus();
-
-        this.editLocation.line = Number(newLine);
-        this.editLocation.word = Number(word);
-        this.editLocation.letter = Number(letter);
-        this.displayArray = this.editorArray;
-        this.editorArray = [];
-        this.displayArray.forEach(line => {
-          this.editorArray.push(line);
-        });
-      } else if (
-        word == 0 &&
-        letter == 0 &&
-        line != 0 &&
-        dir == "left" &&
-        !ev.metaKey &&
-        !ev.altKey
-      ) {
-        let newLine = parseInt(line) - 1;
-        word = this.displayArray[newLine].length - 1;
-        letter = this.displayArray[newLine][word].length;
-        this.selectionLocation.start = { line: newLine, word: word, letter: letter };
-        this.selectionLocation.end = { line: newLine, word: word, letter: letter };
-
-        const activeLineEnd = String(newLine + "-" + word + "-" + letter);
-
-        document.getElementById(activeLineEnd).focus();
-
-        this.editLocation.line = Number(newLine);
-        this.editLocation.word = Number(word);
-        this.editLocation.letter = Number(letter);
-        this.displayArray = this.editorArray;
-        this.editorArray = [];
-        this.displayArray.forEach(line => {
-          this.editorArray.push(line);
-        });
       } else if (dir == "left") {
-        word = 0;
-        letter = 0;
+        if (newLetter > -1) {
+          letter = newLetter;
 
-        this.selectionLocation.start = { line: line, word: word, letter: letter };
-        this.selectionLocation.end = { line: line, word: word, letter: letter };
+          this.updateData(line, word, letter);
+          if (ev.shiftKey) {
+            this.selectHorizontal("left", prev, null);
+          } else {
+            this.selectionLocation.start = { line: line, word: word, letter: letter };
+            this.selectionLocation.end = { line: line, word: word, letter: letter };
+          }
+        } else if (newWord > -1) {
+          word = newWord;
+          letter = this.editorArray[line][word].length;
 
-        const activeLineEnd = String(line + "-" + word + "-" + letter);
+          this.updateData(line, word, letter);
+          if (ev.shiftKey) {
+            this.selectHorizontal("left", prev, null);
+          } else {
+            this.selectionLocation.start = { line: line, word: word, letter: letter };
+            this.selectionLocation.end = { line: line, word: word, letter: letter };
+          }
+        } else {
+          word = 0;
+          letter = 0;
 
-        document.getElementById(activeLineEnd).focus();
-
-        this.editLocation.line = Number(line);
-        this.editLocation.word = Number(word);
-        this.editLocation.letter = Number(letter);
-        this.displayArray = this.editorArray;
-        this.editorArray = [];
-        this.displayArray.forEach(line => {
-          this.editorArray.push(line);
-        });
+          this.updateData(line, word, letter);
+          if (ev.shiftKey) {
+            this.selectHorizontal("left", prev, null);
+          } else {
+            this.selectionLocation.start = { line: line, word: word, letter: letter };
+            this.selectionLocation.end = { line: line, word: word, letter: letter };
+          }
+        }
       } else if (dir == "right") {
-        word = this.editorArray[line].length - 1;
-        letter = this.editorArray[line][word].length;
+        if (newLetter <= this.editorArray[line][word].length) {
+          letter = newLetter;
 
-        this.selectionLocation.start = { line: line, word: word, letter: letter };
-        this.selectionLocation.end = { line: line, word: word, letter: letter };
+          this.updateData(line, word, letter);
+          if (ev.shiftKey) {
+            this.selectHorizontal("right", prev, null);
+          } else {
+            this.selectionLocation.start = { line: line, word: word, letter: letter };
+            this.selectionLocation.end = { line: line, word: word, letter: letter };
+          }
+        } else if (newWord < this.editorArray[line].length) {
+          word = newWord;
+          letter = 0;
 
-        const activeLineEnd = String(line + "-" + word + "-" + letter);
+          this.updateData(line, word, letter);
+          if (ev.shiftKey) {
+            this.selectHorizontal("right", prev, null);
+          } else {
+            this.selectionLocation.start = { line: line, word: word, letter: letter };
+            this.selectionLocation.end = { line: line, word: word, letter: letter };
+          }
+        } else {
+          word = this.editorArray[line].length - 1;
+          letter = this.editorArray[line][word].length;
 
-        document.getElementById(activeLineEnd).focus();
-
-        this.editLocation.line = Number(line);
-        this.editLocation.word = Number(word);
-        this.editLocation.letter = Number(letter);
-        this.displayArray = this.editorArray;
-        this.editorArray = [];
-        this.displayArray.forEach(line => {
-          this.editorArray.push(line);
-        });
-      } else {
-        console.log("UNDEFINED");
+          this.updateData(line, word, letter);
+          if (ev.shiftKey) {
+            this.selectHorizontal("right", prev, null);
+          } else {
+            this.selectionLocation.start = { line: line, word: word, letter: letter };
+            this.selectionLocation.end = { line: line, word: word, letter: letter };
+          }
+        }
       }
     },
+    selectHorizontal(dir, prev, mod) {
+      let line = parseInt(this.editLocation.line);
+      let word = parseInt(this.editLocation.word);
+      let letter = parseInt(this.editLocation.letter);
+      let tempStr = letter;
+
+      if (dir == "left") {
+        if (_.isEqual(this.selectionLocation.start, this.selectionLocation.end)) {
+          // left from no selection
+          tempStr = (prev.letter - 1).toString();
+          this.selectionLocation.start = { line: line, word: word, letter: letter };
+          this.selectionLocation.end = { line: prev.line, word: prev.word, letter: tempStr };
+        } else if (
+          this.selectionLocation.start.line == this.editLocation.line &&
+          this.selectionLocation.start.word == this.editLocation.word &&
+          this.selectionLocation.start.letter == this.editLocation.letter
+        ) {
+          // reset selection
+          this.selectionLocation.start = { line: line, word: word, letter: letter };
+          this.selectionLocation.end = { line: line, word: word, letter: letter };
+        } else if (
+          (mod == "alt" && this.selectionLocation.start.word == this.selectionLocation.end.word) ||
+          (mod == "meta" && this.selectionLocation.start.line == this.selectionLocation.end.line)
+        ) {
+          // fix switch selection
+          this.selectionLocation.start = { line: line, word: word, letter: letter };
+        } else if (_.isMatch(this.selectionLocation.start, prev)) {
+          // left from start
+          this.selectionLocation.start = { line: line, word: word, letter: letter };
+        } else if (
+          this.selectionLocation.end.line == prev.line &&
+          this.selectionLocation.end.word == prev.word &&
+          this.selectionLocation.end.letter + 1 == prev.letter
+        ) {
+          // left from end
+          this.selectionLocation.end = { line: line, word: word, letter: letter - 1 };
+        } else {
+          console.log("So this is entirely unhandled");
+        }
+      } else if (dir == "right") {
+        if (_.isEqual(this.selectionLocation.start, this.selectionLocation.end)) {
+          // right from no selection
+          letter--;
+          tempStr = prev.letter.toString();
+          this.selectionLocation.start = { line: prev.line, word: prev.word, letter: tempStr };
+          this.selectionLocation.end = { line: line, word: word, letter: letter };
+        } else if (
+          this.selectionLocation.end.line == this.editLocation.line &&
+          this.selectionLocation.end.word == this.editLocation.word &&
+          this.selectionLocation.end.letter == this.editLocation.letter - 1
+        ) {
+          // reset selection
+          letter--;
+          this.selectionLocation.start = { line: line, word: word, letter: letter };
+          this.selectionLocation.end = { line: line, word: word, letter: letter };
+        } else if (
+          (mod == "alt" && this.selectionLocation.start.word == this.selectionLocation.end.word) ||
+          (mod == "meta" && this.selectionLocation.start.line == this.selectionLocation.end.line)
+        ) {
+          // fix switch selection
+          console.log("Going right");
+          letter--;
+          this.selectionLocation.end = { line: line, word: word, letter: letter };
+        } else if (
+          this.selectionLocation.start.line == prev.line &&
+          this.selectionLocation.start.word == prev.word &&
+          this.selectionLocation.start.letter == prev.letter
+        ) {
+          letter--;
+          this.selectionLocation.start = { line: line, word: word, letter: letter + 1 };
+        } else if (
+          this.selectionLocation.end.line == prev.line &&
+          this.selectionLocation.end.word == prev.word &&
+          this.selectionLocation.end.letter + 1 == prev.letter
+        ) {
+          letter--;
+          this.selectionLocation.end = { line: line, word: word, letter: letter };
+        } else {
+          console.log("So this is entirely unhandled");
+        }
+        letter++;
+      }
+      this.updateData(line, word, letter);
+    },
+    updateData: _.throttle(function _updateData(line, word, letter) {
+      const newId = String(line + "-" + word + "-" + letter);
+
+      process.nextTick(() => {
+        document.getElementById(newId).focus();
+      });
+
+      this.editLocation.line = Number(line);
+      this.editLocation.word = Number(word);
+      this.editLocation.letter = Number(letter);
+      this.target = line;
+      const tempArr = this.editorArray;
+      this.editorArray = [];
+      tempArr.forEach(line => {
+        this.editorArray.push(line);
+      });
+    }, 10),
   },
-  mounted() {},
 };
 </script>
 
