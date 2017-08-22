@@ -1,9 +1,10 @@
 import Vue from "vue";
 import Router from "vue-router";
 import editor from "@/components/editor";
-import altEditor from "@/components/altEditor";
-import keyBoundEdit from "@/components/keyBoundEdit";
-import convertData from "@/components/convertData";
+// import altEditor from "@/components/altEditor";
+// import keyBoundEdit from "@/components/keyBoundEdit";
+// import convertData from "@/components/convertData";
+import textEditor from "@/components/text-editor";
 
 Vue.use(Router);
 
@@ -15,19 +16,24 @@ export default new Router({
       component: editor,
     },
     {
-      path: "/editor",
-      name: "altEditor",
-      component: altEditor,
+      path: "/text-editor",
+      name: "textEditor",
+      component: textEditor,
     },
-    {
-      path: "/keyBoundEdit",
-      name: "keyBoundEdit",
-      component: keyBoundEdit,
-    },
-    {
-      path: "/convertData",
-      name: "convertData",
-      component: convertData,
-    },
+    // {
+    //   path: "/editor",
+    //   name: "altEditor",
+    //   component: altEditor,
+    // },
+    // {
+    //   path: "/keyBoundEdit",
+    //   name: "keyBoundEdit",
+    //   component: keyBoundEdit,
+    // },
+    // {
+    //   path: "/convertData",
+    //   name: "convertData",
+    //   component: convertData,
+    // },
   ],
 });

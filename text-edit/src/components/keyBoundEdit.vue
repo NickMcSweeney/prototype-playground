@@ -627,6 +627,8 @@ export default {
         this.editorArray[line].splice(word, 1, newWord);
         letter++;
         this.updateData(line, word, letter);
+        this.selectionLocation.start = { line: line, word: word, letter: letter };
+        this.selectionLocation.end = { line: line, word: word, letter: letter };
       }
     }, 25),
     enterEvent: _.throttle(function _enterEvent(ev) {
