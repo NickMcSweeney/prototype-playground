@@ -14,26 +14,18 @@
 </template>
 
 <script>
+import myMethods from "./methods.js";
 export default {
-  name: 'editor',
+  name: "editor",
   data() {
     return {
-      editorData: '',
+      editorData: "",
       editorArray: [],
     };
   },
   methods: {
-    updateonchange() {
-      this.editorArray = this.editorData.split("\n");
-    },
-    setEditorData(ev) {
-      const inputs = ev.srcElement.children;
-      let temp = "";
-      for (var i = 0; i < inputs.length; i++) {
-        temp = temp + String(inputs[i].textContent) + '\n';
-      }
-      this.editorData = temp;
-    },
+    updateonchange: myMethods.updateonchange,
+    setEditorData: myMethods.setEditorData,
   },
 };
 </script>

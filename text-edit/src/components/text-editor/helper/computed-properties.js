@@ -1,13 +1,6 @@
 "use strict";
 
-import arrowInputs from "./arrow-inputs";
-import clearSelection from "./clear-selection";
-import helpers from "./helper";
-import keyboardInput from "./keyboard-input";
-import mouse from "./mouse";
-
 export default {
-  mixins: [arrowInputs, clearSelection, helpers, keyboardInput, mouse],
   computed: {
     currentWord() {
       //  tracks current word being edited

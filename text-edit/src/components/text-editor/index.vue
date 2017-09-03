@@ -1,111 +1,38 @@
 <template>
   <div class="editor">
-        <div
-          class="edit-content"
-          @click="mouseOutOfBounds"
-          @mousedown.prevent="mouseDown(ev = {target:{id:
-  endOfLastLine}})"
-          @mouseup.prevent="mouseUp(ev = {target:{id:
-  endOfLastLine}})"
-        >
-        <!-- loop through line -->
-          <div
-            class="display-line"
-            v-for="(line, lineIndex) in editorArray"
-            @click.stop.prevent="logMouse($event,line,lineIndex)"
-            :class="{'focused-line': isLineFocused(lineIndex)}"
-          >
-          <div
-            class="display-letter front-spacer"
-            :id="'START-'+lineIndex"
-            @click.stop.prevent="selectStart"
-            @mousedown.stop.prevent="mouseDown(ev = {target:{id:
-    lineIndex +'-0-0'}})"
-            @mouseup.stop.prevent="mouseUp(ev = {target:{id:
-    lineIndex +'-0-0'}})"
-          >
-            {{ ' ' }}
-          </div>
-          <!-- loop through word -->
-            <div
-              v-for="(word, index) in line"
-              class="display-word"
-              @click.prevent.stop="selectLine($event, lineIndex)"
-              v-on:dblclick="selectWord"
-              >
-              <!-- loop through letters
-
-              @keydown.left.meta.stop.prevent="arrowHorizontal('start', $event)"
-              @keydown.right.meta.stop.prevent="arrowHorizontal('end', $event)"
-              @keydown.left.alt.stop.prevent="arrowHorizontal('prev', $event)"
-              @keydown.right.alt.stop.prevent="arrowHorizontal('next', $event)"
-              @keydown.left.stop.prevent="arrowHorizontal('left', $event)"
-              @keydown.right.stop.prevent="arrowHorizontal('right', $event)"
-              @keydown.left.shift.stop.prevent="arrowHorizontal('overL', $event)"
-              @keydown.right.shift.stop.prevent="arrowHorizontal('overR', $event)"
-             -->
-              <div
-                v-for="(letter, key) in word"
-                class="display-letter"
-                :class="{'first-word-of-line': index == 0 && key == 0, 'selected-letter': inRange(lineIndex, index, key) && singleSelection, 'empty-paragraph': letter == '\n'}"
-                :tabindex="lineIndex"
-                :id="lineIndex+'-'+index+'-'+key"
-                @keypress.prevent.stop="logKeyboard"
-                @keydown.delete.prevent.stop="deleteEvent"
-                @keydown.enter.prevent.stop="enterEvent"
-                @keydown.down="arrowVertical('down', $event)"
-                @keydown.up="arrowVertical('up', $event)"
-                @keydown.left.stop.prevent="arrowHorizontal($event, 'left')"
-                @keydown.right.stop.prevent="arrowHorizontal($event, 'right')"
-                @mousedown.stop.prevent="mouseDown"
-                @mouseup.stop.prevent="mouseUp"
-                @mouseover="mouseOver"
-              >
-                {{ letter }}
-              </div>
-              <!-- this is an  empty space at the end of the loop to make selection easier -->
-              <div
-                class="end-space"
-                :tabindex="lineIndex"
-                :id="lineIndex+'-'+index+'-'+(word.length)"
-                :class="{'selected-letter': inRange(lineIndex, index, word.length) && singleSelection, 'empty-paragraph': word[0] == '\n'}"
-                @keypress.prevent.stop="logKeyboard"
-                @keydown.delete.prevent.stop="deleteEvent"
-                @keydown.enter.prevent.stop="enterEvent"
-                @keydown.down="arrowVertical('down', $event)"
-                @keydown.up="arrowVertical('up', $event)"
-                @keydown.left.stop.prevent="arrowHorizontal($event, 'left')"
-                @keydown.right.stop.prevent="arrowHorizontal($event, 'right')"
-                @mousedown.stop.prevent="mouseDown"
-                @mouseup.stop.prevent="mouseUp"
-                @mouseover="mouseOver"
-              >
-                {{ '' }}
-              </div>
-            </div>
-            <div
-              class="display-letter spacer"
-              :id="'END-'+lineIndex"
-              @click.stop.prevent="selectEnd"
-              @mousedown.stop.prevent="mouseDown(ev = {target:{id:
-      lastIndex(lineIndex)}})"
-              @mouseup.stop.prevent="mouseUp(ev = {target:{id:
-      lastIndex(lineIndex)}})"
-            >
-              {{ ' ' }}
-            </div>
-          </div>
-        </div>
+    <div
+      class="edit-content"
+      @click="mouseOutOfBounds"
+      @mousedown.prevent="mouseDown(ev = {target:{id:
+    endOfLastLine}})"
+      @mouseup.prevent="mouseUp(ev = {target:{id:
+    endOfLastLine}})"
+    >
+    <!-- loop through line -->
+      <div
+        class="display-line"
+        v-for="(line, lineIndex) in editorArray"
+        @click.stop.prevent="logMouse($event,line,lineIndex)"
+        :class="{'focused-line': isLineFocused(lineIndex)}"
+      >
       </div>
+    </div>
+  </div>
 </template>
 
 <script>
-import arrowInputs from "./mixins/arrow-inputs";
-import clearSelection from "./mixins/clear-selection";
-import helpers from "./mixins/helper";
-import keyboardInput from "./mixins/keyboard-input";
-import mouse from "./mixins/mouse";
-import computedProps from "./mixins/computed";
+// import logKeyboard from "./keyboard/keyboard-input.js";
+// import enterEvent from "./keyboard/enter-event.js";
+// import deleteEvent from "./keyboard/delete-event.js";
+// import arrowHorizontalEvent from "./keyboard/arrow-horizontal.js";
+// import arrowVerticalEvent from "./keyboard/arrow-vertical.js";
+//
+import mouseInputEvent from "./mouse/mouse-input.js";
+// import mouseOver from "./mouse/mouse-over.js";
+//
+import helpers from "./helper/helper-functions.js";
+//
+// import computedProps from "./helper/computed-properties.js";
 
 export default {
   name: "textEditor",
@@ -127,6 +54,31 @@ export default {
       temp: "",
     };
   },
+  computed: {
+    // currentWord: computedProps.currentWord,
+    // currentLine: computedProps.currentLine,
+    // singleSelection: computedProps.singleSelection,
+    // targetLocation: computedProps.targetLocation,
+    // endOfLastLine: computedProps.endOfLastLine,
+  },
+  methods: {
+    // logKeyboard,
+    // enterEvent,
+    // deleteEvent,
+    // arrowHorizontal: arrowHorizontalEvent.arrowHorizontal,
+    // selectHorizontal: arrowHorizontalEvent.selectHorizontal,
+    // arrowVertical: arrowVerticalEvent,
+    //
+    // mouseOver,
+    mouseOutOfBounds: mouseInputEvent.mouseOutOfBounds,
+    // logMouse: mouseInputEvent.logMouse,
+    // mouseDown: mouseInputEvent.mouseDown,
+    // mouseUp: mouseInputEvent.mouseUp,
+    // selectWord: mouseInputEvent.selectWord,
+    // selectLine: mouseInputEvent.selectLine,
+    //
+    isLineFocused: helpers.isLineFocused,
+  },
   watch: {
     targetLocation(newStuff) {
       this.temp = newStuff;
@@ -135,7 +87,6 @@ export default {
       }, 50);
     },
   },
-  mixins: [arrowInputs, clearSelection, helpers, keyboardInput, mouse, computedProps],
 };
 </script>
 

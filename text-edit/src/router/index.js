@@ -1,10 +1,10 @@
 import Vue from "vue";
 import Router from "vue-router";
-import editor from "@/components/editor";
+import editor from "@/components/editor/index";
 // import altEditor from "@/components/altEditor";
 // import keyBoundEdit from "@/components/keyBoundEdit";
 // import convertData from "@/components/convertData";
-import textEditor from "@/components/text-editor";
+import textEditor from "@/components/text-editor/index";
 
 Vue.use(Router);
 
