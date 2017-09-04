@@ -1,5 +1,7 @@
 <template>
   <div class="editor">
+    <h4>Language</h4>
+    <div id="language-display">{{ languageOfLine }}</div>
         <div
           class="edit-content"
           @click="mouseOutOfBounds"
@@ -101,6 +103,8 @@
 
 <script>
 const _ = require("lodash");
+var LanguageDetect = require("languagedetect");
+var lngDetector = new LanguageDetect();
 
 export default {
   name: "keyBoundEdit",
@@ -167,8 +171,21 @@ export default {
       const letter = this.editorArray[line][word].length;
       return line + "-" + word + "-" + letter;
     },
+    languageOfLine() {
+      let lineNumber = this.target;
+      let lineString = _.toString(this.editorArray[lineNumber]);
+      lineString = _.replace(lineString, ",", " ");
+      return this.identify(lineString);
+    },
   },
   methods: {
+    identify(str) {
+      var lang = lngDetector.detect(str, 1);
+      if (lang.length > 0) {
+        return lang[0][0];
+      }
+      return "unknown";
+    },
     lastIndex(lineId) {
       let word = this.editorArray[lineId].length - 1;
       let letter = this.editorArray[lineId][word].length;
@@ -1360,6 +1377,21 @@ export default {
   margin: 60px auto
   padding 20px 0
   user-select: none
+  h4
+    color: #E4E9EF
+    width: 400px
+    height: 25px
+    background-color: #071422
+    border-radius: 3px
+    padding: 3px
+    margin: 12px auto
+  #language-display
+    width: 600px
+    height: 45px
+    background-color: #E4E9EF
+    border-radius: 3px
+    padding: 3px
+    margin: 12px auto
   .edit-content
     text-align: left
     outline: none
