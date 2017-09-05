@@ -1,8 +1,5 @@
 "use strict";
 
-import computed from "./computed-properties.js";
-const that = document.this;
-
 export default {
   methods: {
     lastIndex(lineId) {
@@ -11,7 +8,7 @@ export default {
       return lineId + "-" + word + "-" + letter;
     },
     isLineFocused(index) {
-      return index == that.editLocation.line;
+      return index == this.editLocation.line;
     },
     compareLoc(loc, base) {
       // console.log(loc, base);
