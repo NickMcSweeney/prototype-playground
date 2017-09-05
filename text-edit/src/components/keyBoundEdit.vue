@@ -1,7 +1,7 @@
 <template>
   <div class="editor">
-    <h4>Language</h4>
-    <div id="language-display">{{ languageOfLine }}</div>
+    <h4 @click="showLang = !showLang">Show language</h4>
+    <div v-if="showLang" id="language-display"><span>This Line: {{ languageOfLine }}</span><br><span> All Lines: {{ linesPerLanguage }}</span></div>
         <div
           class="edit-content"
           @click="mouseOutOfBounds"
@@ -35,17 +35,7 @@
               @click.prevent.stop="selectLine($event, lineIndex)"
               v-on:dblclick="selectWord"
               >
-              <!-- loop through letters
-
-              @keydown.left.meta.stop.prevent="arrowHorizontal('start', $event)"
-              @keydown.right.meta.stop.prevent="arrowHorizontal('end', $event)"
-              @keydown.left.alt.stop.prevent="arrowHorizontal('prev', $event)"
-              @keydown.right.alt.stop.prevent="arrowHorizontal('next', $event)"
-              @keydown.left.stop.prevent="arrowHorizontal('left', $event)"
-              @keydown.right.stop.prevent="arrowHorizontal('right', $event)"
-              @keydown.left.shift.stop.prevent="arrowHorizontal('overL', $event)"
-              @keydown.right.shift.stop.prevent="arrowHorizontal('overR', $event)"
-             -->
+              <!-- loop through letters -->
               <div
                 v-for="(letter, key) in word"
                 class="display-letter"
@@ -110,10 +100,12 @@ export default {
   name: "keyBoundEdit",
   data() {
     return {
+      phraseArray: [[" "]],
       editMe: -1,
       editorArray: [[" "]],
       displayArray: [],
       target: 0,
+      targetLine: 0,
       editLocation: { line: 0, word: 0, letter: 0 },
       currSuggestion: 0,
       selection: [],
@@ -124,6 +116,8 @@ export default {
       },
       letterStartSelectBk: Number(),
       temp: "",
+      showLang: false,
+      linesPerLanguage: "",
     };
   },
   watch: {
@@ -132,6 +126,16 @@ export default {
       _.debounce(() => {
         document.getElementById(newStuff).focus();
       }, 50);
+    },
+    currentTargetLine(newTarget) {
+      if (newTarget != this.targetLine) {
+        this.phraseArray = [];
+        this.editorArray.forEach(line => {
+          this.phraseArray.push(line);
+        });
+        this.linesPerLanguage = this.languageOfLines;
+        this.targetLine = newTarget;
+      }
     },
   },
   computed: {
@@ -177,12 +181,31 @@ export default {
       lineString = _.replace(lineString, ",", " ");
       return this.identify(lineString);
     },
+    currentTargetLine() {
+      return this.target;
+    },
+    languageOfLines() {
+      var langs = {};
+      this.editorArray.forEach(line => {
+        let lineString = _.toString(line);
+        lineString = _.replace(lineString, ",", " ");
+        let langRet = this.identify(lineString);
+        if (langRet == "unknown") {
+          langs.unknown > 0 ? langs.unknown++ : (langs.unknown = 1);
+        } else if (_.has(langs, langRet[0][0])) {
+          langs[langRet[0][0]]++;
+        } else {
+          langs[langRet[0][0]] = 1;
+        }
+      });
+      return JSON.stringify(langs);
+    },
   },
   methods: {
     identify(str) {
-      var lang = lngDetector.detect(str, 1);
+      var lang = lngDetector.detect(str, 2);
       if (lang.length > 0) {
-        return lang[0][0];
+        return lang;
       }
       return "unknown";
     },
@@ -1379,19 +1402,18 @@ export default {
   user-select: none
   h4
     color: #E4E9EF
-    width: 400px
-    height: 25px
+    width: 600px
     background-color: #071422
     border-radius: 3px
-    padding: 3px
+    padding: 5px
     margin: 12px auto
   #language-display
     width: 600px
-    height: 45px
     background-color: #E4E9EF
     border-radius: 3px
-    padding: 3px
+    padding: 12px 0
     margin: 12px auto
+    font-size: 14px
   .edit-content
     text-align: left
     outline: none
