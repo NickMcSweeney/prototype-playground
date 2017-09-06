@@ -1,5 +1,6 @@
 <template>
   <div class="editor">
+    <button @click.prevent.stop="showExtras = !showExtras">EXTRA</button>
     <div
       class="edit-content"
       @click="mouseOutOfBounds"
@@ -80,7 +81,7 @@
             @mouseup.stop.prevent="mouseUp"
             @mouseover="mouseOver"
           >
-            {{ '' }}
+            {{ '' }}<span v-if="showExtras">{{ displayLang(lineIndex) }}</span>
           </div>
         </div>
         <div
@@ -113,6 +114,9 @@ import helpers from "./helper/helper-functions.js";
 
 import computedProps from "./helper/computed-properties.js";
 
+import lineSaving from "./extras/by-line-saving.js";
+import languageIdentification from "./extras/text-language-identification.js";
+
 export default {
   name: "textEditor",
   data() {
@@ -131,6 +135,7 @@ export default {
       },
       letterStartSelectBk: Number(),
       temp: "",
+      showExtras: false,
     };
   },
   mixins: [
@@ -143,6 +148,8 @@ export default {
     arrowVerticalEvent,
     mouseInputEvent,
     mouseOver,
+    lineSaving,
+    languageIdentification,
   ],
   computed: {},
   methods: {},
