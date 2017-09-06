@@ -1,6 +1,9 @@
 <template>
   <div class="editor">
-    <button @click.prevent.stop="showExtras = !showExtras">EXTRA</button>
+    <div class="menu-bar">
+      <div id="menu">Menu</div>
+      <div class="menu-item" :class="{'selected-item': showLang}" @click.prevent.stop="showLang = !showLang">Language detection</div>
+    </div>
     <div
       class="edit-content"
       @click="mouseOutOfBounds"
@@ -81,7 +84,7 @@
             @mouseup.stop.prevent="mouseUp"
             @mouseover="mouseOver"
           >
-            {{ '' }}<span v-if="showExtras">{{ displayLang(lineIndex) }}</span>
+            {{ '' }}
           </div>
         </div>
         <div
@@ -94,7 +97,9 @@
     lastIndex(lineIndex)}})"
         >
           {{ ' ' }}
+          <span class="display-lang" v-if="showLang">{{ displayLang(lineIndex) }}</span>
         </div>
+
       </div>
     </div>
   </div>
@@ -125,8 +130,8 @@ export default {
       editorArray: [[" "]],
       displayArray: [],
       target: 0,
+      targetLine: 0,
       editLocation: { line: 0, word: 0, letter: 0 },
-      currSuggestion: 0,
       selection: [],
       selecting: false,
       selectionLocation: {
@@ -135,7 +140,7 @@ export default {
       },
       letterStartSelectBk: Number(),
       temp: "",
-      showExtras: false,
+      showLang: false,
     };
   },
   mixins: [
@@ -160,6 +165,11 @@ export default {
         document.getElementById(newStuff).focus();
       }, 50);
     },
+    currentLine(newTarget) {
+      if (newTarget != this.targetLine) {
+        this.targetLine = newTarget;
+      }
+    },
   },
 };
 </script>
@@ -168,112 +178,156 @@ export default {
 <style lang="stylus" scoped>
 @keyframes blink {
   0% {
-    border-left: 1px solid rgba(1, 1, 1, 1)
+    border-left: 0.05rem solid rgba(1, 1, 1, 1)
   }
   50% {
-    border-left: 1px solid rgba(1, 1, 1, 0)
+    border-left: 0.05rem solid rgba(1, 1, 1, 0)
   }
   75% {
-    border-left: 1px solid rgba(0, 0, 0, 0)
+    border-left: 0.05rem solid rgba(0, 0, 0, 0)
   }
   100% {
-    border-left: 1px solid rgba(1, 1, 1, 1)
+    border-left: 0.05rem solid rgba(1, 1, 1, 1)
   }
 }
 
 .editor
   width: 100%
   height: 100%
-  margin: 60px auto
-  padding 20px 0
+  margin: 1rem auto
+  padding: 0 1rem 0 1rem
   user-select: none
+  box-sizing: border-box
+  .menu-bar
+    width: auto
+    height: 1.5rem
+    margin: 0 auto
+    background-color: #2d393e
+    position: relative;
+    display: flex;
+    border-top-left-radius: 4px
+    border-top-right-radius: 4px
+    #menu
+      width: auto
+      height: 100%
+      line-height: 1.5rem
+      padding: 0 1.5rem 0 .5rem
+      display: inline-flex
+      justify-content: flex-start
+      text-align: center
+      font-size: .8rem
+      color: #E4E9EF
+      font-weight: bold
+      background-color: rgba(52, 69, 119, 0.5)
+    .menu-item
+      width: auto
+      height: 100%
+      line-height: 1.5rem
+      cursor: pointer
+      padding: 0 .5rem
+      display: inline-flex
+      justify-content: flex-start
+      text-align: center
+      font-size: .7rem
+      color: #E4E9EF
+      font-weight: bold
+      background-color: rgba(7, 11, 14,.1)
+      &:hover
+        box-shadow: inset 0px 0px 2px 1px rgba(175, 194, 226, 0.08)
+      &:active
+        box-shadow: inset 1px 1px 2px 1px rgba(39, 41, 46, 0.41)
+    .selected-item
+      background-color: rgba(7, 11, 14, 0.36)
   .edit-content
     text-align: left
     outline: none
     height: 100%
     min-height: 30rem
-    width: 600px
-    overflow-x hidden
-    overflow-y auto
+    width: auto
+    overflow-x: hidden
+    overflow-y: auto
     background-color: #E4E9EF
-    padding 10px 0
-    margin 0 auto
-    border-radius: 5px
+    padding: .5rem 0 .8rem
+    margin: 0 auto
+    border-bottom-left-radius: 5px
+    border-bottom-right-radius: 5px
     > div:focus
       background-color: #FFF
     .display-line
       width: 100%
-      height: 24px
+      height: 1.5rem
       vertical-align: baseline
       text-align: left
-      line-height: 24px
-      margin: 4px 0
+      line-height: 1.5rem
+      margin: .25rem 0
       white-space: nowrap
+      position: relative
+      display: flex
+      justify-content: flex-start
     .focused-line
       background-color: rgba(213, 216, 223, 0.36)
     .display-word, .display-letter
       display: inline-block
       vertical-align: top
       width: auto
-      height: 24px
-      line-height: 24px
+      height: 1.5rem
+      line-height: 1.5rem
       margin: 0
+
+    .display-word
+      flex: 0
+      display: flex
+
     .first-word-of-line
       text-transform: uppercase
     .display-letter:focus
-      border-left: 1px solid black
+      border-left: 0.05rem solid black
       outline: none
-      margin-left: -1px
+      margin-left: -0.05rem
+      // box-sizing: border-box
 
       animation-name: blink
       animation-duration: 1.25s
       animation-iteration-count: infinite
       animation-timing-function: linear
     .end-space
-      width: 5px
+      width: .3rem
       margin: 0
-      padding: 1px 0
-      display: inline-block
-      vertical-align: top
-      height: 22px
-      float: right
+      padding: .03rem 0
+      height: 1.44rem
       &:focus
-        border-left: 1px solid black
+        border-left: 0.05rem solid black
         outline: none
-        width: 4px
+        width: .25rem
 
         animation-name: blink
         animation-duration: 1.25s
         animation-iteration-count: infinite
         animation-timing-function: linear
     .spacer
-      width: 100%
-      display: inline-block
-      overflow-x: none
+      display: inline-flex
+      flex: 1
+      justify-content: flex-end
+      .display-lang
+        color: #eaf1f5
+        background: #1f5d61
+        padding: 0 .5rem
+        font-size: .8rem
+        text-transform: capitalize
+        border-radius: 3px
+        margin-right: .5rem
     .front-spacer
       width: 1rem
       display: inline-block
-      overflow-x: none
+      overflow-x: hidden
+    .lang-disp-out
+      width: 6rem
+      margin-left: -5rem
     .selected-letter
       background-color: rgba(193, 204, 230, 0.82)
     .empty-paragraph
       width: 0
-      margin-left: -1px
+      margin-left: -0.025rem
       user-select: none
-    .suggestionBox
-      min-width: 150px
-      max-height: 100px
-      background-color: #66686f
-      border-radius: 3px
-      position: relative
-      padding: 0
-      overflow-y: auto
-      .suggestion
-        color: rgb(236, 243, 244)
-        display: block
-        padding: 4px 15px
-        margin: 0
-        &:focus
-          background-color: #46474e
-          outline: none
+      box-sizing: border-box
 </style>

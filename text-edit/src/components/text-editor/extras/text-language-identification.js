@@ -1,4 +1,6 @@
 "use strict";
+var LanguageDetect = require("languagedetect");
+var lngDetector = new LanguageDetect();
 
 export default {
   data() {
@@ -8,15 +10,8 @@ export default {
     };
   },
   watch: {
-    currentTargetLine(newTarget) {
-      if (newTarget != this.targetLine) {
-        // this.phraseArray = [];
-        // this.editorArray.forEach(line => {
-        //   this.phraseArray.push(line);
-        // });
-        this.linesPerLanguage = this.languageOfLines;
-        this.targetLine = newTarget;
-      }
+    targetLine(newTarget) {
+      this.linesPerLanguage = this.languageOfLines;
     },
   },
   computed: {
@@ -56,7 +51,7 @@ export default {
       let lineString = _.toString(this.editorArray[lineNumber]);
       lineString = _.replace(lineString, ",", " ");
       const langArray = this.identify(lineString);
-      let humanOut = langArray[0][0];
+      let humanOut = langArray == "unknown" ? "Unknown" : langArray[0][0];
       return humanOut;
     },
   },

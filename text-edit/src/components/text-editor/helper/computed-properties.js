@@ -38,8 +38,11 @@ export default {
       const letter = this.editorArray[line][word].length;
       return line + "-" + word + "-" + letter;
     },
-    currentTargetLine() {
+    currentLine() {
       return this.target;
+    },
+    currentTargetLine() {
+      if (this.targetLine != this.target) return this.targetLine;
     },
   },
 };
