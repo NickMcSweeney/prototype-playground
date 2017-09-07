@@ -41,8 +41,5 @@ export default {
     currentLine() {
       return this.target;
     },
-    currentTargetLine() {
-      if (this.targetLine != this.target) return this.targetLine;
-    },
   },
 };

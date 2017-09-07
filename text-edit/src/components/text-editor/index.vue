@@ -121,6 +121,7 @@ import computedProps from "./helper/computed-properties.js";
 
 import lineSaving from "./extras/by-line-saving.js";
 import languageIdentification from "./extras/text-language-identification.js";
+import lineTiming from "./extras/line-timing.js";
 
 export default {
   name: "textEditor",
@@ -141,6 +142,7 @@ export default {
       letterStartSelectBk: Number(),
       temp: "",
       showLang: false,
+      lineEnded: 0,
     };
   },
   mixins: [
@@ -155,6 +157,7 @@ export default {
     mouseOver,
     lineSaving,
     languageIdentification,
+    lineTiming,
   ],
   computed: {},
   methods: {},
@@ -166,7 +169,9 @@ export default {
       }, 50);
     },
     currentLine(newTarget) {
+      console.log("currentLine");
       if (newTarget != this.targetLine) {
+        this.lineEnded = this.targetLine;
         this.targetLine = newTarget;
       }
     },
@@ -176,6 +181,8 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style lang="stylus" scoped>
+@import url('https://fonts.googleapis.com/css?family=Rubik:300,300i,400,500,500i,700,900');
+
 @keyframes blink {
   0% {
     border-left: 0.05rem solid rgba(1, 1, 1, 1)
@@ -202,11 +209,11 @@ export default {
     width: auto
     height: 1.5rem
     margin: 0 auto
-    background-color: #2d393e
+    background-color: #435258
     position: relative;
     display: flex;
-    border-top-left-radius: 4px
-    border-top-right-radius: 4px
+    border-top-left-radius: 6px
+    border-top-right-radius: 6px
     #menu
       width: auto
       height: 100%
@@ -246,62 +253,70 @@ export default {
     width: auto
     overflow-x: hidden
     overflow-y: auto
-    background-color: #E4E9EF
+    background-color: #fcfcff
     padding: .5rem 0 .8rem
     margin: 0 auto
-    border-bottom-left-radius: 5px
-    border-bottom-right-radius: 5px
+    border-bottom-left-radius: 6px
+    border-bottom-right-radius: 6px
+    box-shadow: inset 0 1px 7px 0 rgba(0, 0, 0, 0.3)
     > div:focus
       background-color: #FFF
     .display-line
       width: 100%
-      height: 1.5rem
+      height: 1.4rem
       vertical-align: baseline
       text-align: left
-      line-height: 1.5rem
-      margin: .25rem 0
+      line-height: 1.4rem
+      margin: 0
       white-space: nowrap
       position: relative
       display: flex
       justify-content: flex-start
     .focused-line
-      background-color: rgba(213, 216, 223, 0.36)
+      // background-color: rgba(#dfe0e8, 0.36)
+      border-radius: 3px
     .display-word, .display-letter
       display: inline-block
       vertical-align: top
       width: auto
-      height: 1.5rem
-      line-height: 1.5rem
+      height: 1.4rem
+      line-height: 1.4rem
+      font-size: 1rem
       margin: 0
 
     .display-word
       flex: 0
       display: flex
 
+
     .first-word-of-line
       text-transform: uppercase
-    .display-letter:focus
-      border-left: 0.05rem solid black
-      outline: none
-      margin-left: -0.05rem
-      // box-sizing: border-box
+    .display-letter
+      font-size: .85rem
+      font-family: 'Rubik', sans-serif
+      font-weight: 400
+      color: #2F374B
+      &:focus
+        border-left: 0.05rem solid #616c82
+        outline: none
+        margin: 0 0 0 -0.05rem
+        height: 1.4rem
+        line-height: 1.4rem
 
-      animation-name: blink
-      animation-duration: 1.25s
-      animation-iteration-count: infinite
-      animation-timing-function: linear
+        animation-name: blink
+        animation-duration: 1s
+        animation-iteration-count: infinite
+        animation-timing-function: linear
     .end-space
       width: .3rem
-      margin: 0
-      padding: .03rem 0
-      height: 1.44rem
+      height: 1.4rem
       &:focus
-        border-left: 0.05rem solid black
+        border-left: 0.05rem solid #616c82
         outline: none
         width: .25rem
 
         animation-name: blink
-        animation-duration: 1.25s
+        animation-duration: 1s
         animation-iteration-count: infinite
         animation-timing-function: linear
     .spacer
@@ -312,10 +327,13 @@ export default {
         color: #eaf1f5
         background: #1f5d61
         padding: 0 .5rem
-        font-size: .8rem
+        font-size: .6rem
+        line-height: 1rem
         text-transform: capitalize
         border-radius: 3px
-        margin-right: .5rem
+        margin: .2rem .5rem
+        height: 1rem
+        vertical-align: middle
     .front-spacer
       width: 1rem
       display: inline-block
@@ -330,4 +348,13 @@ export default {
       margin-left: -0.025rem
       user-select: none
       box-sizing: border-box
+    .miss-spell
+      font-weight: 500
+      color: #FF6545
+    .line-problem
+      background-color: rgba(255, 101, 69, 0.1)
+    .popover
+      background: #FBFDFF
+      box-shadow: 0 2px 7px 0 rgba(0,0,0,0.10)
+      border-radius: 3px
 </style>

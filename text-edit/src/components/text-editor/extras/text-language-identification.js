@@ -9,11 +9,6 @@ export default {
       linesPerLanguage: "",
     };
   },
-  watch: {
-    targetLine(newTarget) {
-      this.linesPerLanguage = this.languageOfLines;
-    },
-  },
   computed: {
     languageOfLine() {
       const lineNumber = this.target;
