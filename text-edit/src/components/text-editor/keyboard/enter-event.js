@@ -2,84 +2,111 @@
 
 export default {
   methods: {
-    enterEvent: _.throttle(function _enterEvent(ev) {
-      // TODO: Prevent empty lines w/out content (insert unicode symbol)
+    enterEvent: _.throttle(function _enterEvent() {
       // handle the enter key event
 
-      this.clearSelection();
+      const specialChar = "\n";
+      const location = this.editLocation;
+      const text = this.editorArray;
+      let line = location.line;
+      let word = location.word;
+      let letter = location.letter;
 
-      let focus = document.activeElement.id;
-      let split = focus.indexOf("-");
+      const firstSegment = text[line][word].slice(0, letter);
+      const secondSegment = text[line][word].slice(letter);
+      const nextLine = parseInt(line) + 1;
+      const prevLine = parseInt(line) - 1;
 
-      let line = focus.slice(0, split);
-
-      focus = focus.slice(split + 1);
-      split = focus.indexOf("-");
-
-      let word = focus.slice(0, split);
-      let letter = focus.slice(split + 1);
-      let first = this.editorArray[line][word].slice(0, letter);
-      const second = this.editorArray[line][word].slice(letter);
-      let specialChar = "\n";
-      let nextLine = parseInt(line) + 1;
-      let prevLine = parseInt(line) - 1;
-      if (
-        (this.editorArray[line][word] === "" && word == 0) ||
-        (this.editorArray[line][word] == specialChar && word == 0)
-      ) {
+      if (this.predictText && this.isSelectedSuggestion) {
         if (
-          this.editorArray[prevLine] != specialChar &&
-          this.editorArray[nextLine] != specialChar &&
-          this.editorArray[prevLine] != "" &&
-          this.editorArray[nextLine] != ""
+          (this.possibleLines[this.tabNum] &&
+            text[0][0] != " " &&
+            text[line][word].length == letter) ||
+          text[line][word] == specialChar
         ) {
-          this.editorArray[line].splice(word, 1, specialChar);
+          this.clearSelection();
+          if (this.possibleLinesArray[this.tabNum].length == 1) {
+            this.replaceWord(this.possibleLines[this.tabNum]);
+          } else {
+            this.replaceLine(this.tabNum);
+          }
+        }
+        this.isSelectedSuggestion = false;
+      } else {
+        if (!this.isMultiLineBreak(text, line, prevLine, nextLine)) {
+          if (firstSegment == "" && word == 0) {
+            text[line].splice(word, 1, secondSegment);
+            text[line].splice(word, 0, "\n");
+            letter = 0;
+          } else if (firstSegment == "") {
+            text[line].splice(word, 1, secondSegment);
+            word--;
+            letter = 0;
+          } else if (firstSegment != "" && secondSegment != "") {
+            text[line].splice(word, 1, secondSegment);
+            text[line].splice(word, 0, firstSegment);
+            letter = 0;
+          }
+          word++;
+          const firstLine =
+            text[line].slice(0, word) == "" ? [specialChar] : text[line].slice(0, word);
+          const secondLine = text[line].slice(word) == "" ? [specialChar] : text[line].slice(word);
+          text.splice(line, 1, firstLine);
           line++;
-          this.editorArray.splice(line, 0, [""]);
           word = 0;
           letter = 0;
+          text.splice(line, 0, secondLine);
         }
-      } else {
-        if (letter != 0) {
-          this.editorArray[line].splice(word, 1, second);
-          this.editorArray[line].splice(word, 0, first);
-          letter = 0;
-          word++;
-        }
-        let begining = this.editorArray[line].slice(0, word);
-        let end = this.editorArray[line].slice(word);
-        try {
-          if (begining.length == 0) {
-            if (
-              _.isMatch(this.editorArray[prevLine], ["\n"]) ||
-              this.editorArray[prevLine].length == 0
-            ) {
-              throw "TOO MANY EMPTY LINES!";
-            } else {
-              begining = ["\n"];
+        this.updateData(line, word, letter);
+      }
+    }, 100),
+
+    isMultiLineBreak(data, loc, prev, next) {
+      if (loc == 0 && this.isBreak(loc)) {
+        // NOTE: This prevents enter if you are on the first line
+        return true;
+      } else if (prev > -1) {
+        if (this.isBreak(loc)) {
+          if (this.isBreak(prev)) {
+            return true;
+          } else if (next < data.length) {
+            if (this.isBreak(next)) {
+              return true;
             }
-          } else if (end.length == 0 || end == "") {
-            if (this.editorArray[nextLine] == undefined) {
-              end = ["\n"];
-            } else if (
-              _.isMatch(this.editorArray[nextLine], ["\n"]) ||
-              this.editorArray[nextLine].length == 0
-            ) {
-              throw "TOO MANY EMPTY LINES!";
-            } else {
-              end = ["\n"];
+          } else if (next == data.length) {
+            return false;
+          }
+        } else {
+          if (this.isBreak(prev)) {
+            if (prev - 1 > -1 && this.isBreak(prev - 1)) {
+              return true;
+            }
+          } else if (this.isBreak(next)) {
+            if (next + 1 < data.length && this.isBreak(next + 1)) {
+              return true;
             }
           }
-          this.editorArray[line] = begining;
-          line++;
-          this.editorArray.splice(line, 0, end);
-          word = 0;
-          letter = 0;
-        } catch (e) {
-          console.log("there was an error creating a new line, it didn't work", e);
         }
+      } else if (prev == -1 && next < data.length) {
+        if (this.isBreak(next)) {
+          if (next + 1 < data.length && this.isBreak(next + 1)) {
+            return true;
+          }
+        }
+      } else {
+        return false;
       }
-      this.updateData(line, word, letter);
-    }, 100),
+    },
+    isBreak(loc) {
+      const data = this.editorArray;
+      if (
+        _.isEqual(data[loc], [" "]) ||
+        _.isEqual(data[loc], ["\n"]) ||
+        _.isEqual(data[loc], [""])
+      ) {
+        return true;
+      }
+      return false;
+    },
   },
 };
