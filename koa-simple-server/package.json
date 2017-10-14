@@ -10,7 +10,9 @@
   "author": "Nicholas Shindler",
   "license": "ISC",
   "dependencies": {
+    "google-translate-api": "^2.3.0",
     "koa": "^2.3.0",
-    "koa-route": "^3.2.0"
+    "koa-router": "^7.2.1",
+    "koa-socket": "^4.4.0"
   }
 }
