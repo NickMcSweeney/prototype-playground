@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="utf-8" />
+<title>Vanilla Test Page</title>
+<style rel="stylesheet" type="text/css">
+  .main {
+    width: 600px;
+    height: auto;
+    min-height: 300px;
+    margin: 50px auto;
+    background-color: rgb(24, 51, 70);
+    border-radius: 6px;
+    padding: 10px;
+  }
+  h2 {
+    text-align: center;
+    font-variant: small-caps;
+    color: rgb(244, 245, 249);
+    border-bottom: 1px solid rgb(244, 245, 249);
+  }
+  label.lang{
+    margin: 10px auto;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: flex-start;
+    flex-wrap: nowrap;
+    width: 500px;
+  }
+  label.lang h4 {
+    width: auto;
+    border-radius: 3px;
+    padding: 6px;
+    color: rgb(244, 245, 249);
+    margin: 0 5px 0 0;
+    font-size: 14px;
+  }
+  input.lang {
+    width: 20px;
+    border-radius: 3px;
+    background-color: rgb(244, 245, 249);
+    padding: 6px;
+  }
+  .actual-stuff {
+    margin: 10px auto;
+    width: 500px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+  input.content {
+    min-width: 300px;
+    border-radius: 3px;
+    background-color: rgb(244, 245, 249);
+    padding: 6px;
+  }
+  button {
+    background-color: rgb(244, 245, 249);
+    padding: 6px 14px;
+    border-radius: 3px;
+  }
+  .output-stuff {
+    margin: 30px auto;
+    width: 600px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+  textarea {
+    min-width: 500px;
+    border-radius: 3px;
+    background-color: rgb(244, 245, 249);
+    padding: 6px 6px;
+    min-height: 200px;
+    box-sizing: border-box;
+  }
+</style>
+</head>
+
+<body id="index" >
+
+  <div class="main">
+    <h2>'Nilla Test Page</h2>
+    <label class="lang">
+      <h4>Language Code</h4>
+      <input class="lang" type="text" name="language-stuff" id="language-stuff" value=""/>
+    </label>
+    <div class="actual-stuff">
+      <input class="content" type="text" name="content-stuff" id="content-stuff" value=""/>
+      <button type="button" id="button" name="button">Run Stuff</button>
+    </div>
+    <div class="output-stuff">
+      <textarea id="text-out" value=""></textarea>
+    </div>
+
+  </div>
+
+
+  <script>
+function getStuff() {
+  fetch("http://localhost:3001/test/", {
+    method: "GET",
+  })
+    .then(function(response) {
+      if (response.status === 200) {
+        return response.text();
+      } else {
+        console.log(response);
+        throw "request failed with status " + response.status;
+      }
+    })
+    .then(function(text) {
+      console.log("GETTING ->", text);
+      // document.getElementById('text-out').value = response.body;
+    })
+    .catch(err => {
+      console.error("ERROR: ", err);
+    });
+}
+
+function translateStuff() {
+  console.log("Starting");
+  var text = String(document.getElementById("content-stuff").value);
+  var lang = String(document.getElementById("language-stuff").value);
+
+  var body = new Object();
+  body.text = text;
+  body.langOrigin = 'en';
+  body.langOut = lang;
+  body = JSON.stringify(body);
+  // console.log("BODY: ", origin);
+
+  var myHeaders = new Headers();
+  myHeaders.append("Content-Type", "application/json");
+  myHeaders.append("Stuff", "mighty mouse");
+  console.log(myHeaders.get("Content-Type"));
+
+  fetch("http://localhost:3001/input/translate/", {
+    method: "POST",
+    body,
+    headers: myHeaders,
+  })
+    .then(function(response) {
+      if (response.status === 200) {
+        return response.json();
+      } else {
+        console.log(response);
+        throw "request failed with status " + response.status;
+      }
+    })
+    .then(function(res) {
+      console.log("SOMETHING ->", res);
+      document.getElementById("text-out").value = JSON.stringify( res, null, 2 );
+    })
+    .catch(err => {
+      console.error("ERROR: ", err);
+    });
+}
+
+document.getElementById("button").addEventListener("mousedown", ev => {
+  ev.stopPropagation();
+  ev.preventDefault();
+  console.log("Stuff", ev);
+  // getStuff();
+  translateStuff();
+});
+</script>
+</body>
+
+</html>

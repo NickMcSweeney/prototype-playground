@@ -10,9 +10,12 @@
   "author": "Nicholas Shindler",
   "license": "ISC",
   "dependencies": {
+    "connect": "^3.6.5",
     "google-translate-api": "^2.3.0",
     "koa": "^2.3.0",
+    "koa-body": "^2.5.0",
+    "koa-bodyparser": "^4.2.0",
     "koa-router": "^7.2.1",
-    "koa-socket": "^4.4.0"
+    "serve-static": "^1.13.1"
   }
 }
