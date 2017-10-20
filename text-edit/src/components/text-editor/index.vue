@@ -122,6 +122,7 @@
             </div>
             {{ '' }}
           </div>
+          <slot name="dropdown-on-word" v-if="lineIndex==editLocation.line && index == editLocation.word"> </slot>
           <div class="pop-box"
             v-if="showSpelling &&
             showSuggestions &&
@@ -152,67 +153,70 @@
           </div>
         </div>
       </div>
+
       <div v-else class="display-line">
-      <div
-        class="display-letter front-spacer"
-        :id="'START-'+lineIndex"
-        @click.stop.prevent="selectStart"
-        @mousedown.stop.prevent="mouseDown(ev = {target:{id: lineIndex +'-0-0'}})"
-        @mouseup.stop.prevent="mouseUp(ev = {target:{id: lineIndex +'-0-0'}})"
-      >
-        {{ ' ' }}
+        <div
+          class="display-letter front-spacer"
+          :id="'START-'+lineIndex"
+          @click.stop.prevent="selectStart"
+          @mousedown.stop.prevent="mouseDown(ev = {target:{id: lineIndex +'-0-0'}})"
+          @mouseup.stop.prevent="mouseUp(ev = {target:{id: lineIndex +'-0-0'}})"
+        >
+          {{ ' ' }}
+        </div>
+        <div
+          class="end-space"
+          @mousedown.stop.prevent="mouseDown"
+          @mouseup.stop.prevent="mouseUp"
+          @mouseover="mouseOver"
+        >
+        </div>
       </div>
-      <div
-        class="end-space"
-        @mousedown.stop.prevent="mouseDown"
-        @mouseup.stop.prevent="mouseUp"
-        @mouseover="mouseOver"
-      >
       </div>
-      </div>
-      </div>
+
       </div>
     </div>
-    <search-bar :data="editorArray" v-on:search="searching" @focus="changeFocus"></search-bar>
+    <slot name="dropdown-on-editor"> </slot>
+    <search-bar v-if="searchable" :data="editorArray" v-on:search="searching" @focus="changeFocus"></search-bar>
   </div>
 </template>
 
 <script>
-import _ from "lodash";
+import _ from 'lodash';
 
-import miniMap from "./../mini-map/index.vue";
-import searchBar from "./../search-bar/index.vue";
-import hiddenEditor from "./../hidden-editor/index.vue";
-import displayLetter from "./../display-letter/index.vue";
+import miniMap from './../mini-map/index.vue';
+import searchBar from './../search-bar/index.vue';
+import hiddenEditor from './../hidden-editor/index.vue';
+import displayLetter from './../display-letter/index.vue';
 
-import logKeyboard from "./keyboard/keyboard-input.js";
-import enterEvent from "./keyboard/enter-event.js";
-import deleteEvent from "./keyboard/delete-event.js";
-import tabEvent from "./keyboard/tab-event.js";
-import arrowHorizontalEvent from "./keyboard/arrow-horizontal.js";
-import arrowVerticalEvent from "./keyboard/arrow-vertical.js";
+import logKeyboard from './keyboard/keyboard-input.js';
+import enterEvent from './keyboard/enter-event.js';
+import deleteEvent from './keyboard/delete-event.js';
+import tabEvent from './keyboard/tab-event.js';
+import arrowHorizontalEvent from './keyboard/arrow-horizontal.js';
+import arrowVerticalEvent from './keyboard/arrow-vertical.js';
 
-import mouseInputEvent from "./mouse/mouse-input.js";
+import mouseInputEvent from './mouse/mouse-input.js';
 
-import helpers from "./helper/helper-functions.js";
-import selection from "./helper/selection.js";
+import helpers from './helper/helper-functions.js';
+import selection from './helper/selection.js';
 
-import computedProps from "./helper/computed-properties.js";
+import computedProps from './helper/computed-properties.js';
 
-import lineSaving from "./extras/by-line-saving.js";
-import languageIdentification from "./extras/text-language-identification.js";
-import lineTiming from "./extras/line-timing.js";
-import textPrediction from "./extras/text-prediction.js";
-import spelling from "./extras/spelling.js";
+import lineSaving from './extras/by-line-saving.js';
+import languageIdentification from './extras/text-language-identification.js';
+import lineTiming from './extras/line-timing.js';
+import textPrediction from './extras/text-prediction.js';
+import spelling from './extras/spelling.js';
 
-import copyPaste from "./shortcuts/copy-paste.js";
-import undo from "./shortcuts/undo.js";
-import expletive from "./shortcuts/expletive.js";
-import bold from "./shortcuts/bold.js";
-import unknown from "./shortcuts/unknown.js";
+import copyPaste from './shortcuts/copy-paste.js';
+import undo from './shortcuts/undo.js';
+import expletive from './shortcuts/expletive.js';
+import bold from './shortcuts/bold.js';
+import unknown from './shortcuts/unknown.js';
 
 export default {
-  name: "text-editor",
+  name: 'text-editor',
   props: {
     maxLineLength: {
       type: Number,
@@ -226,14 +230,17 @@ export default {
     },
     phraseBreakType: {
       type: String,
-      default: 'Sentence'
-    }
+      default: 'Sentence',
+    },
+    searchable: {
+      default: true,
+    },
   },
   data() {
     return {
-      editorArray: [[" "]],
+      editorArray: [[' ']],
       displayArray: [],
-      selectedId: "0-0-1",
+      selectedId: '0-0-1',
       target: null,
       targetLine: null,
       editLocation: { line: 0, word: 0, letter: 0 },
@@ -244,7 +251,7 @@ export default {
         end: { line: 0, word: 0, letter: 0 },
       },
       letterStartSelectBk: Number(),
-      temp: "",
+      temp: '',
       lineEnded: 0,
       lineStarted: 0,
       predictText: this.showHints,
@@ -288,10 +295,10 @@ export default {
         const line = this.editLocation.line;
         const word = this.editLocation.word;
         const letter = this.editLocation.letter;
-        let newId = String(line + "-" + word + "-" + letter);
+        let newId = String(line + '-' + word + '-' + letter);
         process.nextTick(() => {
           this.selectedId = newId;
-          document.getElementsByName("hidden-editor-input")[0].focus();
+          document.getElementsByName('hidden-editor-input')[0].focus();
         });
       } else {
         this.selectedId = null;
@@ -306,7 +313,7 @@ export default {
       return false;
     },
     isCursorLoc(line, word, letter) {
-      if (this.selectedId == line + "-" + word + "-" + letter) {
+      if (this.selectedId == line + '-' + word + '-' + letter) {
         return true;
       }
       return false;
@@ -330,29 +337,32 @@ export default {
         this.targetLine = newTarget;
       }
     },
+    phraseObject(data) {
+      this.$emit('edited', data);
+    },
   },
   components: {
-    "mini-map": miniMap,
-    "search-bar": searchBar,
-    "hidden-editor": hiddenEditor,
-    "display-letter": displayLetter,
+    'mini-map': miniMap,
+    'search-bar': searchBar,
+    'hidden-editor': hiddenEditor,
+    'display-letter': displayLetter,
   },
   mounted() {
-    this.setEditorView()
+    this.setEditorView();
 
     if (!this.focus) {
       this.changeFocus();
     }
 
     if (this.canCopy) {
-      document.addEventListener("copy", ev => {
+      document.addEventListener('copy', ev => {
         ev.preventDefault();
         ev.stopPropagation();
         this.copy();
       });
     }
     if (this.canCut) {
-      document.addEventListener("cut", ev => {
+      document.addEventListener('cut', ev => {
         ev.preventDefault();
         ev.stopPropagation();
         this.cut();
@@ -366,17 +376,17 @@ export default {
     //   });
     // }
     if (this.canPaste) {
-      document.addEventListener("paste", ev => {
+      document.addEventListener('paste', ev => {
         ev.preventDefault();
         ev.stopPropagation();
         this.paste();
       });
     }
 
-    document.addEventListener("keydown", ev => {
-      if (ev.metaKey && ev.key == "z") {
+    document.addEventListener('keydown', ev => {
+      if (ev.metaKey && ev.key == 'z') {
         this.undo();
-      } else if (ev.metaKey && ev.key == "y") {
+      } else if (ev.metaKey && ev.key == 'y') {
         this.redo();
         ev.preventDefault();
         ev.stopPropagation();

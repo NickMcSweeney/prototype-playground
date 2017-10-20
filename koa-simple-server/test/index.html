@@ -122,29 +122,11 @@ function getStuff() {
     .catch(err => {
       console.error("ERROR: ", err);
     });
-}
+};
 
-function translateStuff() {
-  console.log("Starting");
-  var text = String(document.getElementById("content-stuff").value);
-  var lang = String(document.getElementById("language-stuff").value);
-
-  var body = new Object();
-  body.text = text;
-  body.langOrigin = 'en';
-  body.langOut = lang;
-  body = JSON.stringify(body);
-  // console.log("BODY: ", origin);
-
-  var myHeaders = new Headers();
-  myHeaders.append("Content-Type", "application/json");
-  myHeaders.append("Stuff", "mighty mouse");
-  console.log(myHeaders.get("Content-Type"));
-
-  fetch("http://localhost:3001/input/translate/", {
-    method: "POST",
-    body,
-    headers: myHeaders,
+function parseTMX(){
+  fetch("http://localhost:3001/read/", {
+    method: "GET",
   })
     .then(function(response) {
       if (response.status === 200) {
@@ -155,19 +137,53 @@ function translateStuff() {
       }
     })
     .then(function(res) {
-      console.log("SOMETHING ->", res);
+      console.log("GETTING ->", res);
+      document.getElementById('text-out').value = JSON.stringify( res.both, null, 2 );
+    })
+    .catch(err => {
+      console.error("ERROR: ", err);
+    });
+};
+
+function translateStuff() {
+  var text = String(document.getElementById("content-stuff").value);
+  var lang = String(document.getElementById("language-stuff").value);
+
+  var body = new Object();
+  body.text = text;
+  body.langOrigin = false;
+  body.langOut = lang;
+  body = JSON.stringify(body);
+  // console.log("BODY: ", origin);
+
+  var myHeaders = new Headers();
+  myHeaders.append("Content-Type", "application/json");
+
+  fetch("http://localhost:3001/input/translate/", {
+    method: "POST",
+    body,
+    headers: myHeaders,
+  })
+    .then(function(response) {
+      if (response.status === 200) {
+        return response.json();
+      } else {
+        throw "request failed with status " + response.status;
+      }
+    })
+    .then(function(res) {
       document.getElementById("text-out").value = JSON.stringify( res, null, 2 );
     })
     .catch(err => {
       console.error("ERROR: ", err);
     });
-}
+};
 
 document.getElementById("button").addEventListener("mousedown", ev => {
   ev.stopPropagation();
   ev.preventDefault();
-  console.log("Stuff", ev);
   // getStuff();
+  // parseTMX()
   translateStuff();
 });
 </script>

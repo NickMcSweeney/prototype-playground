@@ -5,17 +5,24 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "dev": "node server.js & node ./test/index.js",
+    "test-server": "node ./test/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Nicholas Shindler",
   "license": "ISC",
   "dependencies": {
+    "bluebird": "^3.5.1",
     "connect": "^3.6.5",
     "google-translate-api": "^2.3.0",
     "koa": "^2.3.0",
     "koa-body": "^2.5.0",
     "koa-bodyparser": "^4.2.0",
     "koa-router": "^7.2.1",
-    "serve-static": "^1.13.1"
+    "lazy-xml-parser": "^1.1.6",
+    "node-cmd": "^3.0.0",
+    "serve-static": "^1.13.1",
+    "tmx": "^0.2.2",
+    "xml2js": "^0.4.19"
   }
 }
